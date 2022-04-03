@@ -49,5 +49,6 @@
             "name": "Investments",
             "description": "Money gained from investments."
         }
-    ]
+    ],
+    "save_location": "/home/ugrads/nonmajors/cwshugg/personal/snowbudget-save"
 }

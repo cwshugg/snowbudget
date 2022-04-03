@@ -4,6 +4,7 @@
 
 # Imports
 import json
+import os
 
 # Local imports
 from classes import ExpenseClass, IncomeClass
@@ -66,7 +67,7 @@ class Config:
         ]
         parse_check_fields(jdata, fields)
         self.name = jdata["name"]
-        self.sdpath = jdata["save_location"]
+        self.spath = jdata["save_location"]
 
         # parse each expense class
         for entry in jdata["expense_classes"]:
@@ -78,8 +79,11 @@ class Config:
     # Performs initialization procedures *after* parse() has been successfully
     # invoked.
     def init(self):
-        # first, attempt
-        pass
+        # first, attempt to set up the save location
+        assert not os.path.isfile(self.spath), \
+               "the save location must be a path to a directory"
+        if not os.path.exists(self.spath):
+            os.mkdir(self.spath)
 
 # TEST CODE
 c = Config("./config/example.json")
@@ -91,5 +95,5 @@ for ec in c.eclasses:
 print("Income classes:")
 for ic in c.iclasses:
     print("\t%s" % ic)
-
+c.init()
 
