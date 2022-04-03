@@ -1,0 +1,53 @@
+{
+    "name": "Monthly Budget",
+    "expense_classes":
+    [
+        {
+            "name": "Groceries",
+            "description": "Foodstuffs."
+        },
+        {
+            "name": "Supplies",
+            "description": "Non-food supplies."
+        },
+        {
+            "name": "Restaurants",
+            "description": "Eating out."
+        },
+        {
+            "name": "Transportation",
+            "description": "Gas, tickets, etc."
+        },
+        {
+            "name": "Recreation",
+            "description": "Fun stuff."
+        },
+        {
+            "name": "Subscriptions",
+            "description": "Recurring expenses for services."
+        },
+        {
+            "name": "Housing",
+            "description": "Expenses for housing."
+        },
+        {
+            "name": "Medical",
+            "description": "Medical/health-related expenses."
+        },
+        {
+            "name": "Miscellaneous",
+            "description": "Anything that doesn't fit other categories."
+        }
+    ],
+    "income_classes":
+    [
+        {
+            "name": "Salary",
+            "description": "Money earned from my job."
+        },
+        {
+            "name": "Investments",
+            "description": "Money gained from investments."
+        }
+    ]
+}
