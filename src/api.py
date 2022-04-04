@@ -128,13 +128,23 @@ class API:
             return False
         
         # attempt to remove (check for failure)
-        if not bclass_old.remove(t):
+        if not bclass_old.remove(transaction):
             return False
         
         # push onto the new budget class, then mark both classes as dirty
-        bclass_new.add(t)
+        bclass_new.add(transaction)
         bclass_old.dirty = True
         bclass_new.dirty = True
+        return True
+    
+    # Takes in a transaction and its budget class and removes it from the class.
+    # Returns True on a successful deletion, false otherwise.
+    def delete_transaction(self, transaction, bclass):
+        # attempt to remove
+        if not bclass.remove(transaction):
+            return False
+        bclass.dirty = True
+        return True
 
     # ------------------------------- Storage -------------------------------- #
     # Saves all modified classes to disk. Returns True if *something* was
@@ -182,6 +192,11 @@ api.move_transaction(t, bc1, bc2)
 print("MOVE 1: %s\nMOVE 1: %s" % (bc1.to_json(), bc2.to_json()))
 api.move_transaction(t, bc2, bc1)
 print("MOVE 2: %s\nMOVE 2: %s" % (bc1.to_json(), bc2.to_json()))
+
+result = api.find_transaction(vendor="bdubs")
+if result != None:
+    api.delete_transaction(result[0], result[1])
+    print("DELETION: %s" % result[1].to_json())
 
 api.save()
 
