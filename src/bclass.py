@@ -103,6 +103,15 @@ class BudgetClass:
     def add(self, transaction):
         self.history.append(transaction)    
     
+    # Removes the given transaction from the list. Returns True if the removal
+    # succeeded, False otherwise.
+    def remove(self, transaction):
+        idx = self.history.index(transaction)
+        if idx < 0:
+            return False
+        self.history.pop(idx)
+        return True
+    
     # Sorts all contained transactions by datetime and returns the list sorted
     # with most recent at the front.
     def sort(self):

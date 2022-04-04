@@ -119,15 +119,22 @@ class API:
         # if we get here, then nothing suitable was found
         return None
     
-    # Takes in the original category and the new category to move a transaction
-    # to as well as information that can be used to identify the correct
-    # transaction object and attempts to move it from one category to another.
-    def move_transaction(self, category1, category2,
-                         price=None, vendor=None, description=None):
-        [t, bc] = self.find_transaction(price=price, vendor=vendor, desc=desc,
-                                        category=category)
-
-
+    # Takes in a Transaction and its current budget class, as well as a new
+    # budget class, and moves the transaction from one to the other.
+    # Returns True if a move occurred, False otherwise.
+    def move_transaction(self, transaction, bclass_old, bclass_new):
+        # if the classes are the same, there's no move to do
+        if bclass_old == bclass_new:
+            return False
+        
+        # attempt to remove (check for failure)
+        if not bclass_old.remove(t):
+            return False
+        
+        # push onto the new budget class, then mark both classes as dirty
+        bclass_new.add(t)
+        bclass_old.dirty = True
+        bclass_new.dirty = True
 
     # ------------------------------- Storage -------------------------------- #
     # Saves all modified classes to disk. Returns True if *something* was
@@ -140,7 +147,8 @@ class API:
             # has been changed yet)
             if not c.dirty:
                 continue
-            # otherwise, write it out to disk
+            # otherwise, write it out to disk (after sorting)
+            c.sort()
             self.disk.write_class(c)
             count += 1
         return count > 0
@@ -157,7 +165,6 @@ c.parse()
 
 #print("\nAPI STUFF:")
 api = API(c)
-api.save()
 print("Search: %s" % api.get_class(sys.argv[1]).to_json())
 
 [t, bc] = api.find_transaction(price=7.98)
@@ -166,4 +173,15 @@ print("TSearch 1: %s, %s" % (t, bc))
 print("TSearch 2: %s, %s" % (t, bc))
 [t, bc] = api.find_transaction(vendor="cook")
 print("TSearch 3: %s, %s" % (t, bc))
+[t, bc] = api.find_transaction(price=7.98, vendor="Cookout")
+print("TSearch 4: %s, %s" % (t, bc))
+
+bc1 = bc
+bc2 = api.get_class("groceries")
+api.move_transaction(t, bc1, bc2)
+print("MOVE 1: %s\nMOVE 1: %s" % (bc1.to_json(), bc2.to_json()))
+api.move_transaction(t, bc2, bc1)
+print("MOVE 2: %s\nMOVE 2: %s" % (bc1.to_json(), bc2.to_json()))
+
+api.save()
 

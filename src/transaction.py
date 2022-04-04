@@ -24,7 +24,7 @@ class Transaction:
     
     # Converts the transaction's timestamp to a date string and returns it.
     def to_date_string(self):
-        return self.timestamp.strftime("%Y-%M-%d")
+        return self.timestamp.strftime("%Y-%m-%d")
     
     # Converts the transaction's price to a dollar string.
     def to_dollar_string(self):
