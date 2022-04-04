@@ -7,7 +7,10 @@ import json
 import os
 
 # Local imports
-from classes import ExpenseClass, IncomeClass
+from bclass import BudgetClass, BudgetClassType
+
+# Globals
+uncategorized_name = "Uncategorized"    # used as a default expense/income class
 
 # Main configuration class.
 class Config:
@@ -16,8 +19,7 @@ class Config:
         self.fpath = fpath
         # set up config fields as None (initialized in 'parse()')
         self.name = None    # configuration name
-        self.eclasses = []  # expense class list
-        self.iclasses = []  # income class list
+        self.classes = []   # budget class list
     
     # Attempts to parse the config file given in the constructor. Throws an
     # exception on failure.
@@ -32,23 +34,24 @@ class Config:
                 assert fname in jd and type(jd[fname]) == ftype, \
                        "expected JSON field '%s' of type '%s'" % (fname, ftype)
         
-        # Used to parse an expense class from within the JSON data. Checks for
+        # Used to parse a budget class from within the JSON data. Checks for
         # the presence of the correct fields and saves the data to an internal
         # list.
-        def parse_eclass(jd):
+        def parse_class(jd):
             # check for the correct fields
-            fs = [["name", str], ["description", str]]
+            fs = [["name", str], ["description", str], ["type", str]]
             parse_check_fields(jd, fs)
-            self.eclasses.append(ExpenseClass(jd["name"], jd["description"]))
-        
-        # Used to parse an income class from within the JSON data. Checks for
-        # the presence of the correct fields and saves the data to an internal
-        # list.
-        def parse_iclass(jd):
-            # check for the correct fields
-            fs = [["name", str], ["description", str]]
-            parse_check_fields(jd, fs)
-            self.iclasses.append(IncomeClass(jd["name"], jd["description"]))
+            # parse out the type of class
+            typestr = jd["type"].lower()
+            ctype = None
+            if typestr == "income":
+                ctype = BudgetClassType.INCOME
+            elif typestr == "expense":
+                ctype = BudgetClassType.EXPENSE
+            assert ctype != None, "each class's type must be \"expense\" or \"income\""
+            # add the new class
+            c = BudgetClass(jd["name"], ctype, jd["description"])
+            self.classes.append(c)
 
         # -------------------- Main Parsing Functionality -------------------- #
         # open the file, slurp the entire content (should be small), then close
@@ -61,20 +64,23 @@ class Config:
         jdata = json.loads(content)
         fields = [
             ["name", str],
-            ["expense_classes", list],
-            ["income_classes", list],
+            ["classes", list],
             ["save_location", str]
         ]
         parse_check_fields(jdata, fields)
         self.name = jdata["name"]
         self.spath = jdata["save_location"]
 
-        # parse each expense class
-        for entry in jdata["expense_classes"]:
-            parse_eclass(entry)
-        # parse each incoem class
-        for entry in jdata["income_classes"]:
-            parse_iclass(entry)
+        # parse each budget class
+        for entry in jdata["classes"]:
+            parse_class(entry)
+
+        # add two default classes - one "uncategorized" for both expenses and
+        # income
+        self.classes.append(BudgetClass("Uncategorized Expenses",
+                            BudgetClassType.EXPENSE, "Default expense category."))
+        self.classes.append(BudgetClass("Uncategorized Income",
+                            BudgetClassType.INCOME, "Default income category."))
     
     # Performs initialization procedures *after* parse() has been successfully
     # invoked.
@@ -84,16 +90,4 @@ class Config:
                "the save location must be a path to a directory"
         if not os.path.exists(self.spath):
             os.mkdir(self.spath)
-
-# TEST CODE
-c = Config("./config/example.json")
-c.parse()
-print("Budget: %s" % c.name)
-print("Expense classes:")
-for ec in c.eclasses:
-    print("\t%s" % ec)
-print("Income classes:")
-for ic in c.iclasses:
-    print("\t%s" % ic)
-c.init()
 

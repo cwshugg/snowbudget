@@ -1,53 +1,56 @@
 {
     "name": "Monthly Budget",
-    "expense_classes":
+    "classes":
     [
         {
             "name": "Groceries",
-            "description": "Foodstuffs."
+            "description": "Foodstuffs.",
+            "type": "expense"
         },
         {
             "name": "Supplies",
-            "description": "Non-food supplies."
+            "description": "Non-food supplies.",
+            "type": "expense"
         },
         {
             "name": "Restaurants",
-            "description": "Eating out."
+            "description": "Eating out.",
+            "type": "expense"
         },
         {
             "name": "Transportation",
-            "description": "Gas, tickets, etc."
+            "description": "Gas, tickets, etc.",
+            "type": "expense"
         },
         {
             "name": "Recreation",
-            "description": "Fun stuff."
+            "description": "Fun stuff.",
+            "type": "expense"
         },
         {
             "name": "Subscriptions",
-            "description": "Recurring expenses for services."
+            "description": "Recurring expenses for services.",
+            "type": "expense"
         },
         {
             "name": "Housing",
-            "description": "Expenses for housing."
+            "description": "Expenses for housing.",
+            "type": "expense"
         },
         {
             "name": "Medical",
-            "description": "Medical/health-related expenses."
+            "description": "Medical/health-related expenses.",
+            "type": "expense"
         },
         {
-            "name": "Miscellaneous",
-            "description": "Anything that doesn't fit other categories."
-        }
-    ],
-    "income_classes":
-    [
-        {
             "name": "Salary",
-            "description": "Money earned from my job."
+            "description": "Money earned from my job.",
+            "type": "income"
         },
         {
             "name": "Investments",
-            "description": "Money gained from investments."
+            "description": "Money gained from investments.",
+            "type": "income"
         }
     ],
     "save_location": "/home/ugrads/nonmajors/cwshugg/personal/snowbudget-save"

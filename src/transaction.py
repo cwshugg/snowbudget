@@ -6,8 +6,8 @@
 class Transaction:
     # Takes in the vendor of the transaction, the price (absolute value), and
     # one or two more optional fields.
-    def __init__(self, vendor, price, description=None):
-        self.vendor = vendor
+    def __init__(self, price, vendor=None, description=None):
         self.price = price
+        self.vendor = vendor
         self.description = description
 
