@@ -20,6 +20,7 @@ class Config:
         # set up config fields as None (initialized in 'parse()')
         self.name = None    # configuration name
         self.classes = []   # budget class list
+        self.spath = None   # path to save directory
     
     # Attempts to parse the config file given in the constructor. Throws an
     # exception on failure.
@@ -39,8 +40,14 @@ class Config:
         # list.
         def parse_class(jd):
             # check for the correct fields
-            fs = [["name", str], ["description", str], ["type", str]]
+            fs = [
+                ["name", str],
+                ["type", str],
+                ["description", str],
+                ["keywords", list]
+            ]
             parse_check_fields(jd, fs)
+
             # parse out the type of class
             typestr = jd["type"].lower()
             ctype = None
@@ -49,8 +56,14 @@ class Config:
             elif typestr == "expense":
                 ctype = BudgetClassType.EXPENSE
             assert ctype != None, "each class's type must be \"expense\" or \"income\""
+
+            # extract the list of keywords (as strings)
+            keywords = []
+            for entry in jd["keywords"]:
+                keywords.append(str(entry).lower())
+
             # add the new class
-            c = BudgetClass(jd["name"], ctype, jd["description"])
+            c = BudgetClass(jd["name"], ctype, jd["description"], keywords)
             self.classes.append(c)
 
         # -------------------- Main Parsing Functionality -------------------- #
@@ -77,17 +90,11 @@ class Config:
 
         # add two default classes - one "uncategorized" for both expenses and
         # income
+        keywords = ["uncategorized", "default"]
         self.classes.append(BudgetClass("Uncategorized Expenses",
-                            BudgetClassType.EXPENSE, "Default expense category."))
+                            BudgetClassType.EXPENSE, "Default expense category.",
+                            keywords))
         self.classes.append(BudgetClass("Uncategorized Income",
-                            BudgetClassType.INCOME, "Default income category."))
-    
-    # Performs initialization procedures *after* parse() has been successfully
-    # invoked.
-    def init(self):
-        # first, attempt to set up the save location
-        assert not os.path.isfile(self.spath), \
-               "the save location must be a path to a directory"
-        if not os.path.exists(self.spath):
-            os.mkdir(self.spath)
-
+                            BudgetClassType.INCOME, "Default income category.",
+                            keywords))
+     

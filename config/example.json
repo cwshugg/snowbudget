@@ -4,53 +4,63 @@
     [
         {
             "name": "Groceries",
+            "type": "expense",
             "description": "Foodstuffs.",
-            "type": "expense"
+            "keywords": ["groceries", "grocery", "store"]
         },
         {
             "name": "Supplies",
+            "type": "expense",
             "description": "Non-food supplies.",
-            "type": "expense"
+            "keywords": ["supplies", "supply", "tools"]
         },
         {
             "name": "Restaurants",
+            "type": "expense",
             "description": "Eating out.",
-            "type": "expense"
+            "keywords": ["food", "dinner", "lunch", "brunch", "breakfast"]
         },
         {
             "name": "Transportation",
+            "type": "expense",
             "description": "Gas, tickets, etc.",
-            "type": "expense"
+            "keywords": ["transportation", "car", "gas", "ticket"]
         },
         {
             "name": "Recreation",
+            "type": "expense",
             "description": "Fun stuff.",
-            "type": "expense"
+            "keywords": ["recreation", "fun"]
         },
         {
             "name": "Subscriptions",
+            "type": "expense",
             "description": "Recurring expenses for services.",
-            "type": "expense"
+            "keywords": ["subscriptions", "subscribe"]
         },
         {
             "name": "Housing",
+            "type": "expense",
             "description": "Expenses for housing.",
-            "type": "expense"
+            "keywords": ["housing", "rent", "utilities", "utils", "water", "heating", "electricity", "internet"]
         },
         {
             "name": "Medical",
+            "type": "expense",
             "description": "Medical/health-related expenses.",
-            "type": "expense"
+            "keywords": ["medical", "doctor", "medicine"]
         },
         {
             "name": "Salary",
+            "type": "income",
             "description": "Money earned from my job.",
-            "type": "income"
+            "keywords": ["salary", "job", "wage", "paycheck", "bonus"]
         },
         {
             "name": "Investments",
+            "type": "income",
             "description": "Money gained from investments.",
-            "type": "income"
+            "keywords": ["investments", "stocks"]
         }
     ],
     "save_location": "/home/ugrads/nonmajors/cwshugg/personal/snowbudget-save"

@@ -3,10 +3,14 @@
 #
 #   Connor Shugg
 
+# Imports
+import os
+
 # Local imports
 import config
 from bclass import BudgetClassType
 from transaction import Transaction
+from disk import Disk
 
 class API:
     # Takes in the Config object that was parsed prior to this object's
@@ -33,24 +37,31 @@ class API:
         assert self.iclass_default != None, \
                "failed to find a default class for income."
 
+        # set up a disk object, then initialize files (if not already existing)
+        # for each budget class
+        self.disk = Disk(os.path.realpath(conf.spath))
+        for c in self.classes:
+            if not self.disk.check_class(c):
+                print("doesn't exist: '%s'" % c)
+                self.disk.write_class(c)
+
     # ------------------------------ Retrieval ------------------------------- #
-    # Takes in a name and searches the expense classes for a matching one.
-    # Returns the ExpenseClass object, or None if one isn't found.
+    # Takes in text and searches the expense classes for a matching one.
+    # Returns the BudgetClass object, or None if one isn't found.
     # This does a "loose" search; all strings are compared in lowercase and a
-    # match succeeds if 'name' is IN a class's name, not necessarily EQUAL.
+    # match succeeds if 'text' is IN a class's keywords, not necessarily EQUAL.
     # The type is optional. If a type is given, *only* those classes with the
     # matching type will be searched. If a type isn't given, they will all be
     # searched, and the first match will be returned.
-    # The expense class is returned as a JSON object.
-    def get_class(self, name, ctype=None):
-        name = name.lower()
+    def get_class(self, text, ctype=None):
+        text = text.lower()
         for c in self.classes:
             # if a type was given, only consider the ones with a matching type
             if ctype != None and c.ctype != ctype:
                 continue
-            # if the query is contained by the class's name, we'll take it
-            if name in c.name.lower():
-                return c.to_json()
+            # attempt to match the class - return on true
+            if c.match(text):
+                return c
         return None
     
     # ------------------------------- Updates -------------------------------- #
@@ -63,11 +74,20 @@ class API:
         t = Transaction(price, vendor, description)
 
         # find the correct category to place this transaction into (only
-        # consider income categories if the price is negative)
-        ctype = BudgetClassType.INCOME if price < 0.0 else None
-        c = self.get_class(category, ctype)
-        print("FOUND CATEGORY: %s" % c)
-        
+        # consider income categories if the price is negative). If no category
+        # was given, we'll put it in the 'default expenses' bucket
+        c = self.iclass_default if price < 0.0 else self.eclass_default
+        if category != None:
+            ctype = BudgetClassType.INCOME if price < 0.0 else None
+            c = self.get_class(category, ctype)
+            print("FOUND CATEGORY: %s" % c)
+
+        # add the new transaction to the category
+        c.add(t)
+
+    # ------------------------------- Storage -------------------------------- #
+
+
 # TEST CODE
 import sys
 c = config.Config("./config/example.json")
@@ -75,10 +95,10 @@ c.parse()
 print("Budget: %s" % c.name)
 print("Expense classes:")
 for ec in c.classes:
-    print("\t%s" % ec)
-c.init()
+    print("\t%s (%s)" % (ec, ec.keywords))
 
 print("\nAPI STUFF:")
 api = API(c)
-print("Search: %s" % api.get_class(sys.argv[1]))
+api.add_transaction(7.98, "food", "Cookout", "Cookout tray and milkshake... yum")
+print("Search: %s" % api.get_class(sys.argv[1]).to_json())
 
