@@ -87,6 +87,47 @@ class API:
         # add the new transaction to the category and mark the class as dirty
         c.add(t)
         c.dirty = True
+    
+    # Used to search for a transaction given some sort of information about it.
+    # Returns a list with this content:
+    #       [transaction_object, budget_class_object_it_belongs_to]
+    # OR returns None if nothing matching is found.
+    def find_transaction(self, price=None, vendor=None, description=None,
+                         category=None):
+        # make sure we were given *something* to go off of
+        assert price != None or vendor != None or description != None or \
+               category != None, \
+               "some sort of information about the transaction must be given."
+        # if a category was given, search for the correct budget class
+        bclass = None
+        if category != None:
+            bclass = self.get_class(category)
+        
+        # before searching, compare all strings to lowercase
+        vendor = vendor.lower() if vendor != None else None
+        description = description.lower() if description != None else None
+
+        # now, build an array (either of length 1 or the entire set) and iterate
+        # through it to check all the appropriate classes
+        bcs = [bclass] if bclass != None else self.classes
+        for bc in bcs:
+            # search through each transaction in reverse order (most recent
+            # will be checked first)
+            for t in bc.sort():
+                if t.match(price=price, vendor=vendor, description=description):
+                    return [t, bc]
+        # if we get here, then nothing suitable was found
+        return None
+    
+    # Takes in the original category and the new category to move a transaction
+    # to as well as information that can be used to identify the correct
+    # transaction object and attempts to move it from one category to another.
+    def move_transaction(self, category1, category2,
+                         price=None, vendor=None, description=None):
+        [t, bc] = self.find_transaction(price=price, vendor=vendor, desc=desc,
+                                        category=category)
+
+
 
     # ------------------------------- Storage -------------------------------- #
     # Saves all modified classes to disk. Returns True if *something* was
@@ -118,4 +159,11 @@ c.parse()
 api = API(c)
 api.save()
 print("Search: %s" % api.get_class(sys.argv[1]).to_json())
+
+[t, bc] = api.find_transaction(price=7.98)
+print("TSearch 1: %s, %s" % (t, bc))
+[t, bc] = api.find_transaction(description="Cookout")
+print("TSearch 2: %s, %s" % (t, bc))
+[t, bc] = api.find_transaction(vendor="cook")
+print("TSearch 3: %s, %s" % (t, bc))
 

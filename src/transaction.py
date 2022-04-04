@@ -14,6 +14,21 @@ class Transaction:
         self.vendor = vendor
         self.desc = description
         self.timestamp = timestamp
+    
+    # Used to build a string representation of a transaction.
+    def __str__(self):
+        return "%s %s%s%s" % (self.to_date_string(),
+               self.to_dollar_string(),
+               "" if self.vendor == None else " (%s)" % self.vendor,
+               "" if self.desc == None else ": %s" % self.desc)
+    
+    # Converts the transaction's timestamp to a date string and returns it.
+    def to_date_string(self):
+        return self.timestamp.strftime("%Y-%M-%d")
+    
+    # Converts the transaction's price to a dollar string.
+    def to_dollar_string(self):
+        return "$%.2f" % self.price
 
     # ----------------------------- JSON Helpers ----------------------------- #
     # Used to convert this object into a JSON object.
@@ -46,4 +61,30 @@ class Transaction:
         t = Transaction(jdata["price"], vendor=jdata["vendor"],
                         description=jdata["description"], timestamp=ts)
         return t
+
+    # ------------------------------ Operations ------------------------------ #
+    # Attempts to match this transaction based on information given. Returns
+    # True if a match is detected and False otherwise.
+    def match(self, price=None, vendor=None, description=None, timestamp=None):
+        assert price != None or vendor != None or description != None or timestamp != None, \
+               "at least one piece of information must be given to match a transaction"
+        # count the number of fields given versus the number of correct matches
+        given = 0
+        matched = 0
+        expect = [self.price, self.vendor, self.desc, timestamp]
+        actual = [price, vendor, description, timestamp]
+        for i in range(len(expect)):
+            f1 = expect[i]
+            f2 = actual[i]
+            # if the given field isn't None, we'll compare it
+            if f2 != None:
+                # determine if the strings match
+                match = f2 == f1
+                if type(f2) == str:
+                    match = match or f2.lower() in f1.lower()
+                # increment counters
+                given += 1
+                matched = matched + 1 if match else matched
+        # return whether or not everything compared was matched
+        return given == matched
 

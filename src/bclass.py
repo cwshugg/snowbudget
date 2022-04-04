@@ -29,6 +29,11 @@ class BudgetClass:
     def __str__(self):
         typestr = "INC" if self.ctype == BudgetClassType.INCOME else "EXP"
         return "%s (%s): %s" % (self.name, typestr, self.desc)
+    
+    # Used to iterate across a class's transaction history.
+    def __iter__(self):
+        for t in self.history:
+            yield t
 
     # --------------------------- JSON and File IO --------------------------- #
     # Used to convert the class into a JSON object.
@@ -76,12 +81,14 @@ class BudgetClass:
                         keywords=jdata["keywords"], history=hdata)
         return c
     
+    # ----------------------------- Conversions ------------------------------ #
     # Turns the category's name in to a Linux-friendly file name.
     def to_file_name(self):
         fname = self.name.lower()
         fname = fname.replace(" ", "_")
         return fname + ".json"
     
+    # ------------------------------ Operations ------------------------------ #
     # Takes in a string and attempts to match it against one of the class's
     # keywords. If it loosely matches ('text' is either contained or equal to
     # one of the keywords), True is returned. Otherwise, False is returned.
@@ -95,4 +102,10 @@ class BudgetClass:
     # Adds an 'transaction' object that represents a single transaction.
     def add(self, transaction):
         self.history.append(transaction)    
+    
+    # Sorts all contained transactions by datetime and returns the list sorted
+    # with most recent at the front.
+    def sort(self):
+        self.history.sort(key=lambda t: t.timestamp, reverse=True)
+        return self.history
 
