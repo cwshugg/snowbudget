@@ -16,13 +16,10 @@ class API:
     # Takes in the Config object that was parsed prior to this object's
     # creation.
     def __init__(self, conf):
-        # copy references to the config's classes
-        self.classes = conf.classes
-        
         # locate the default category for expenses
         self.eclass_default = None
         self.iclass_default = None
-        for c in self.classes:
+        for c in conf.classes:
             # first, check if the names match
             if config.uncategorized_name.lower() in c.name.lower():
                 # if the names match, check the expense type 
@@ -40,10 +37,16 @@ class API:
         # set up a disk object, then initialize files (if not already existing)
         # for each budget class
         self.disk = Disk(os.path.realpath(conf.spath))
-        for c in self.classes:
+        for c in conf.classes:
             if not self.disk.check_class(c):
-                print("doesn't exist: '%s'" % c)
                 self.disk.write_class(c)
+
+        # now, attemp to load each file into memory (for each class)
+        self.classes = []   # master list of classes
+        for c in conf.classes:
+            bclass = self.disk.load_class(c.to_file_name())
+            bclass.dirty = False # mark as NOT dirty to start
+            self.classes.append(bclass)
 
     # ------------------------------ Retrieval ------------------------------- #
     # Takes in text and searches the expense classes for a matching one.
@@ -80,25 +83,39 @@ class API:
         if category != None:
             ctype = BudgetClassType.INCOME if price < 0.0 else None
             c = self.get_class(category, ctype)
-            print("FOUND CATEGORY: %s" % c)
 
-        # add the new transaction to the category
+        # add the new transaction to the category and mark the class as dirty
         c.add(t)
+        c.dirty = True
 
     # ------------------------------- Storage -------------------------------- #
+    # Saves all modified classes to disk. Returns True if *something* was
+    # written to disk. False otherwise
+    def save(self):
+        count = 0
+        # iterate across the number of classes we have
+        for c in self.classes:
+            # if the class hasn't been marked as 'dirty', skip it (since nothing
+            # has been changed yet)
+            if not c.dirty:
+                continue
+            # otherwise, write it out to disk
+            self.disk.write_class(c)
+            count += 1
+        return count > 0
 
 
 # TEST CODE
 import sys
 c = config.Config("./config/example.json")
 c.parse()
-print("Budget: %s" % c.name)
-print("Expense classes:")
-for ec in c.classes:
-    print("\t%s (%s)" % (ec, ec.keywords))
+#print("Budget: %s" % c.name)
+#print("Expense classes:")
+#for ec in c.classes:
+#    print("\t%s (%s)" % (ec, ec.keywords))
 
-print("\nAPI STUFF:")
+#print("\nAPI STUFF:")
 api = API(c)
-api.add_transaction(7.98, "food", "Cookout", "Cookout tray and milkshake... yum")
+api.save()
 print("Search: %s" % api.get_class(sys.argv[1]).to_json())
 

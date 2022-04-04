@@ -2,8 +2,12 @@
 #
 #   Connor Shugg
 
+# Imports
 import os
 import json
+
+# Local imports
+from bclass import BudgetClass
 
 class Disk:
     # Takes in the main directory path to save the budget to.
@@ -27,4 +31,14 @@ class Disk:
         fp = open(fpath, "w")
         fp.write(json.dumps(bclass.to_json(), indent=4))
         fp.close()
+    
+    # Attempts to load a file as JSON and parse it as a budget class.
+    def load_class(self, fname):
+        fpath = os.path.join(self.spath, fname)
+        fp = open(fpath, "r")       # open file
+        data = fp.read()            # slurp whole file in
+        fp.close()                  # close file
+        jdata = json.loads(data)    # convert to JSON
+        # attempt to convert from JSON and return the object
+        return BudgetClass.from_json(jdata)
 

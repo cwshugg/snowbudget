@@ -15,12 +15,35 @@ class Transaction:
         self.desc = description
         self.timestamp = timestamp
 
+    # ----------------------------- JSON Helpers ----------------------------- #
     # Used to convert this object into a JSON object.
     def to_json(self):
         jdata = {
             "price": self.price,
             "vendor": self.vendor,
-            "description": self.desc
+            "description": self.desc,
+            "timestamp": self.timestamp.timestamp()
         }
         return jdata
+    
+    # Used to create a Transaction object from raw JSON data.
+    @staticmethod
+    def from_json(jdata):
+        # build a list of expected JSON fields and assert they exist
+        expected = [
+            ["price", float, "each transaction JSON must have a \"price\" float."],
+            ["vendor", str, "each transaction JSON must have a \"vendor\" string."],
+            ["description", str, "each transaction JSON must have a \"description\" list."],
+            ["timestamp", float, "each transaction JSON must have a \"timestamp\" float."]
+        ]
+        for f in expected:
+            assert f[0] in jdata and type(jdata[f[0]]) == f[1], f[2]
+
+        # attempt to parse the timestamp
+        ts = datetime.fromtimestamp(jdata["timestamp"])
+            
+        # create the object
+        t = Transaction(jdata["price"], vendor=jdata["vendor"],
+                        description=jdata["description"], timestamp=ts)
+        return t
 
