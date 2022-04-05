@@ -67,6 +67,13 @@ class API:
                 continue
             result.append(bclass)
         return result
+    
+    # Takes in a class type and returns the appropriate default budget class.
+    # If no ctype is given, the default class for expenses is returned.
+    def get_default_class(self, ctype=None):
+        if ctype == None or ctype == BudgetClassType.EXPENSE:
+            return self.eclass_default
+        return self.iclass_default
 
     # Takes in text and searches the expense classes for a matching one.
     # Returns the BudgetClass object, or None if one isn't found.
@@ -92,20 +99,16 @@ class API:
     #   - If 'price' is negative, it's assumed to be an income.
     #   - If 'category' is blank, it's added to a default "nameless" income or
     #     expense class.
-    def add_transaction(self, price, category=None, vendor=None, description=None):
+    def add_transaction(self, price, bclass=None, vendor=None, description=None):
         t = Transaction(price, vendor, description)
-
-        # find the correct category to place this transaction into (only
-        # consider income categories if the price is negative). If no category
-        # was given, we'll put it in the 'default expenses' bucket
-        c = self.iclass_default if price < 0.0 else self.eclass_default
-        if category != None:
-            ctype = BudgetClassType.INCOME if price < 0.0 else None
-            c = self.find_class(category, ctype)
+        # if no budget class is given, resort to the default depending on the
+        # given price
+        if bclass == None:
+            bclass = self.eclass_default if price >= 0.0 else self.iclass_default
 
         # add the new transaction to the category and mark the class as dirty
-        c.add(t)
-        c.dirty = True
+        bclass.add(t)
+        bclass.dirty = True
     
     # Used to search for a transaction given some sort of information about it.
     # Returns a list with this content:

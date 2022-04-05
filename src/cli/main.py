@@ -51,6 +51,43 @@ def fatality(msg=None, exception=None):
 def dollar_to_string(value):
     return "$%.2f" % value
 
+
+# ============================== Input Reading =============================== #
+# Takes a prompt and gets a string input from the user.
+def input_wrapper(prompt):
+    return input("%s%s%s " % (C_YELLOW, prompt, C_NONE))
+
+# Used to get a price value from stdin. Returns None on a failed parse.
+def input_price(prompt="Price:"):
+    price = input_wrapper(prompt).strip()
+    try:
+        price = float(price)
+        assert price > 0.0
+        return price
+    except Exception as e:
+        return None
+
+# Reads from stdin to get a budget class from the user. If a match isn't found
+# then None is returned. Otherwise, the BudgetClass object is returned.
+def input_budget_class(prompt="Budget class:"):
+    bcname = input_wrapper(prompt).strip()
+    # try to find the correct category and prompt the user if it's correct
+    bclass = None
+    if len(bcname) > 0:
+        return api.find_class(bcname)
+    # if nothing was givne, default to the expense default class
+    return api.get_default_class()
+
+# Asks the user a yes/no question.
+def input_boolean(prompt):
+    while True:
+        val = input_wrapper(prompt).lower().strip()
+        if val in ["y", "yes"]:
+            return True
+        elif val in ["n", "no"]:
+            return False
+        print("Please enter y/yes or n/no.")
+
 # ============================= Argument Parsing ============================= #
 # Responsible for parsing command-line arguments.
 def parse_args():
@@ -66,6 +103,9 @@ def parse_args():
                    default=None, nargs=1, type=str)
     p.add_argument("--list",
                    help="Lists all budget classes and basic statistics for each.",
+                   default=False, action="store_true")
+    p.add_argument("--add",
+                   help="Prompts the user to enter information for a new transaction.",
                    default=False, action="store_true")
 
     return vars(p.parse_args())
@@ -126,6 +166,30 @@ def list_budget_classes():
         ictotal += list_budget_class(iclasses[i], pfx)
     print("Total income: %s\n" % dollar_to_string(ictotal))
 
+# Prompts the user for information to add a new transaction.
+def add_transaction():
+    price = input_price()
+    if price == None:
+        sys.stderr.write("The price must be a positive integer or float.\n")
+        sys.exit(1)
+
+    # read the vendor, description, and category as input
+    vendor = input_wrapper("Vendor:").strip()
+    desc = input_wrapper("Description:").strip()
+
+    # get the budget class
+    bclass = None
+    while bclass == None:
+        bclass = input_budget_class()
+        if bclass == None:
+            print("Couldn't find a matching budget class.")
+            continue
+        # ask the user if this is the class they want
+        print("Found class: %s" % bclass)
+        if not input_boolean("Is this correct?"):
+            bclass = None
+            continue
+    
 # Main function.
 def main():
     # parse the arguments, then parse the config file
@@ -147,6 +211,11 @@ def main():
     # if '--list' was given, we'll list basic budget information
     if "list" in args and args["list"]:
         list_budget_classes()
+        sys.exit(0)
+
+    # if '--add' was given, we'll try to add, then exit
+    if "add" in args and args["add"]:
+        add_transaction()
         sys.exit(0)
 
 # =============================== Runner Code ================================ #
