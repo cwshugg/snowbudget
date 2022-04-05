@@ -4,10 +4,17 @@
 
 # Imports
 import os
+import sys
 import json
 
+# Enable import from the parent directory
+dpath = os.path.dirname(os.path.realpath(__file__)) # directory of this file
+dpath = os.path.dirname(dpath)                      # parent directory
+if dpath not in sys.path:                           # add to path
+        sys.path.append(dpath)
+
 # Local imports
-from bclass import BudgetClass
+from lib.bclass import BudgetClass
 
 class Disk:
     # Takes in the main directory path to save the budget to.

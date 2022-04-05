@@ -5,12 +5,19 @@
 
 # Imports
 import os
+import sys
+
+# Enable import from the parent directory
+dpath = os.path.dirname(os.path.realpath(__file__)) # directory of this file
+dpath = os.path.dirname(dpath)                      # parent directory
+if dpath not in sys.path:                           # add to path
+        sys.path.append(dpath)
 
 # Local imports
-import config
-from bclass import BudgetClassType
-from transaction import Transaction
-from disk import Disk
+import lib.config as config
+from lib.bclass import BudgetClassType
+from lib.transaction import Transaction
+from lib.disk import Disk
 
 class API:
     # Takes in the Config object that was parsed prior to this object's
@@ -19,6 +26,7 @@ class API:
         # locate the default category for expenses
         self.eclass_default = None
         self.iclass_default = None
+        assert len(conf.classes) > 0, "found no classes in the config."
         for c in conf.classes:
             # first, check if the names match
             if config.uncategorized_name.lower() in c.name.lower():
@@ -47,8 +55,19 @@ class API:
             bclass = self.disk.load_class(c.to_file_name())
             bclass.dirty = False # mark as NOT dirty to start
             self.classes.append(bclass)
-
+    
     # ------------------------------ Retrieval ------------------------------- #
+    # Takes in an optional class type and returns all budget classes that are of
+    # the same class type (or *all* classes if no type is given).
+    def get_classes(self, ctype=None):
+        result = []
+        for bclass in self.classes:
+            # skip those with the wrong type, if applicable
+            if ctype != None and bclass.ctype != ctype:
+                continue
+            result.append(bclass)
+        return result
+
     # Takes in text and searches the expense classes for a matching one.
     # Returns the BudgetClass object, or None if one isn't found.
     # This does a "loose" search; all strings are compared in lowercase and a
@@ -56,7 +75,7 @@ class API:
     # The type is optional. If a type is given, *only* those classes with the
     # matching type will be searched. If a type isn't given, they will all be
     # searched, and the first match will be returned.
-    def get_class(self, text, ctype=None):
+    def find_class(self, text, ctype=None):
         text = text.lower()
         for c in self.classes:
             # if a type was given, only consider the ones with a matching type
@@ -82,7 +101,7 @@ class API:
         c = self.iclass_default if price < 0.0 else self.eclass_default
         if category != None:
             ctype = BudgetClassType.INCOME if price < 0.0 else None
-            c = self.get_class(category, ctype)
+            c = self.find_class(category, ctype)
 
         # add the new transaction to the category and mark the class as dirty
         c.add(t)
@@ -101,7 +120,7 @@ class API:
         # if a category was given, search for the correct budget class
         bclass = None
         if category != None:
-            bclass = self.get_class(category)
+            bclass = self.find_class(category)
         
         # before searching, compare all strings to lowercase
         vendor = vendor.lower() if vendor != None else None
@@ -157,46 +176,11 @@ class API:
             # has been changed yet)
             if not c.dirty:
                 continue
-            # otherwise, write it out to disk (after sorting)
+            # otherwise, write it out to disk (after sorting) and reset the
+            # class's dirty flag
             c.sort()
             self.disk.write_class(c)
+            c.dirty = False
             count += 1
         return count > 0
-
-
-# TEST CODE
-import sys
-c = config.Config("./config/example.json")
-c.parse()
-#print("Budget: %s" % c.name)
-#print("Expense classes:")
-#for ec in c.classes:
-#    print("\t%s (%s)" % (ec, ec.keywords))
-
-#print("\nAPI STUFF:")
-api = API(c)
-print("Search: %s" % api.get_class(sys.argv[1]).to_json())
-
-[t, bc] = api.find_transaction(price=7.98)
-print("TSearch 1: %s, %s" % (t, bc))
-[t, bc] = api.find_transaction(description="Cookout")
-print("TSearch 2: %s, %s" % (t, bc))
-[t, bc] = api.find_transaction(vendor="cook")
-print("TSearch 3: %s, %s" % (t, bc))
-[t, bc] = api.find_transaction(price=7.98, vendor="Cookout")
-print("TSearch 4: %s, %s" % (t, bc))
-
-bc1 = bc
-bc2 = api.get_class("groceries")
-api.move_transaction(t, bc1, bc2)
-print("MOVE 1: %s\nMOVE 1: %s" % (bc1.to_json(), bc2.to_json()))
-api.move_transaction(t, bc2, bc1)
-print("MOVE 2: %s\nMOVE 2: %s" % (bc1.to_json(), bc2.to_json()))
-
-result = api.find_transaction(vendor="bdubs")
-if result != None:
-    api.delete_transaction(result[0], result[1])
-    print("DELETION: %s" % result[1].to_json())
-
-api.save()
 

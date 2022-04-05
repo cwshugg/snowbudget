@@ -3,10 +3,18 @@
 #   Connor Shugg
 
 # Imports
+import os
+import sys
 from enum import Enum
 
+# Enable import from the parent directory
+dpath = os.path.dirname(os.path.realpath(__file__)) # directory of this file
+dpath = os.path.dirname(dpath)                      # parent directory
+if dpath not in sys.path:                           # add to path
+        sys.path.append(dpath)
+
 # Local imports
-from transaction import Transaction
+from lib.transaction import Transaction
 
 # ================================ Type Enum ================================= #
 # Simple enum to differentiate between the *types* of budget classes.
@@ -68,8 +76,10 @@ class BudgetClass:
             assert f[0] in jdata and type(jdata[f[0]]) == f[1], f[2]
 
         # check the correct type
-        assert jdata["type"].lower() in ["expense", "income"], \
+        typestr = jdata["type"].lower()
+        assert typestr in ["expense", "income"], \
                "a class's \"type\" must be either \"expense\" or \"income\""
+        ctype = BudgetClassType.INCOME if typestr == "income" else BudgetClassType.EXPENSE
 
         # try to extract the list of history objects
         hdata = []
@@ -77,7 +87,7 @@ class BudgetClass:
             hdata.append(Transaction.from_json(entry))
 
         # create the object
-        c = BudgetClass(jdata["name"], jdata["type"], jdata["description"],
+        c = BudgetClass(jdata["name"], ctype, jdata["description"],
                         keywords=jdata["keywords"], history=hdata)
         return c
     

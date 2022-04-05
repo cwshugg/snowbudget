@@ -5,9 +5,16 @@
 # Imports
 import json
 import os
+import sys
+
+# Enable import from the parent directory
+dpath = os.path.dirname(os.path.realpath(__file__)) # directory of this file
+dpath = os.path.dirname(dpath)                      # parent directory
+if dpath not in sys.path:                           # add to path
+        sys.path.append(dpath)
 
 # Local imports
-from bclass import BudgetClass, BudgetClassType
+from lib.bclass import BudgetClass, BudgetClassType
 
 # Globals
 uncategorized_name = "Uncategorized"    # used as a default expense/income class
@@ -97,4 +104,4 @@ class Config:
         self.classes.append(BudgetClass("Uncategorized Income",
                             BudgetClassType.INCOME, "Default income category.",
                             keywords))
-     
+

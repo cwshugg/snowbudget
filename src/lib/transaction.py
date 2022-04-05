@@ -4,7 +4,15 @@
 #   Connor Shugg
 
 # Imports
+import os
+import sys
 from datetime import datetime
+
+# Enable import from the parent directory
+dpath = os.path.dirname(os.path.realpath(__file__)) # directory of this file
+dpath = os.path.dirname(dpath)                      # parent directory
+if dpath not in sys.path:                           # add to path
+        sys.path.append(dpath)
 
 class Transaction:
     # Takes in the vendor of the transaction, the price (absolute value), and
