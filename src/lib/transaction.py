@@ -29,7 +29,7 @@ class Transaction:
         if self.tid == None:
             self.tid = str(self.price) + str(self.vendor) + str(self.desc) + \
                        str(self.timestamp)
-            self.tid = hashlib.sha256(self.tid.encode("utf-8")).hexdigest()
+            self.tid = hashlib.sha256(self.tid.encode("utf-8")).hexdigest().lower()
     
     # Used to build a string representation of a transaction.
     def __str__(self):
@@ -83,27 +83,35 @@ class Transaction:
 
     # ------------------------------ Operations ------------------------------ #
     # Attempts to match this transaction based on information given. Returns
-    # True if a match is detected and False otherwise.
-    def match(self, price=None, vendor=None, description=None, timestamp=None):
-        assert price != None or vendor != None or description != None or timestamp != None, \
-               "at least one piece of information must be given to match a transaction"
-        # count the number of fields given versus the number of correct matches
-        given = 0
-        matched = 0
-        expect = [self.price, self.vendor, self.desc, timestamp]
-        actual = [price, vendor, description, timestamp]
-        for i in range(len(expect)):
-            f1 = expect[i]
-            f2 = actual[i]
-            # if the given field isn't None, we'll compare it
-            if f2 != None:
-                # determine if the strings match
-                match = f2 == f1
-                if type(f2) == str:
-                    match = match or f2.lower() in f1.lower()
-                # increment counters
-                given += 1
-                matched = matched + 1 if match else matched
-        # return whether or not everything compared was matched
-        return given == matched
+    # True if a match is detected and False otherwise. Primarily checks the ID
+    # of the transaction, then checks other fields.
+    def match(self, text):
+        text = text.lower()
+        # first, check against the ID
+        if text == self.tid:
+            return True
+        
+        # otherwise we'll check other fields (start with timestamp)
+        try:
+            if int(text) == int(self.timestamp.timestamp()):
+                return True
+        except Exception as e:
+            pass
+
+        # check price
+        try:
+            if float(text) == self.price:
+                return True
+        except Exception as e:
+            pass
+
+        # check description
+        if text in self.desc.lower():
+            return True
+        # check vendor
+        if text in self.vendor.lower():
+            return True
+        
+        # otherwise, we'll return false
+        return False
 

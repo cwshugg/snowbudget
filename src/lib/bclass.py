@@ -45,7 +45,7 @@ class BudgetClass:
             # throw in the current datetime as well
             self.bcid += "%d" % datetime.now().timestamp()
             # now, hash the string to form the ID
-            self.bcid = hashlib.sha256(self.bcid.encode("utf-8")).hexdigest()
+            self.bcid = hashlib.sha256(self.bcid.encode("utf-8")).hexdigest().lower()
     
     # Used to create a string representation of the budget class object.
     def __str__(self):
@@ -115,11 +115,16 @@ class BudgetClass:
         return fname + ".json"
     
     # ------------------------------ Operations ------------------------------ #
-    # Takes in a string and attempts to match it against one of the class's
-    # keywords. If it loosely matches ('text' is either contained or equal to
-    # one of the keywords), True is returned. Otherwise, False is returned.
+    # Takes in a string and attempts to match it against the class's ID or one
+    # of the class's keywords. If it loosely matches ('text' is either contained
+    # in or equal to one of the keywords), True is returned.
+    # Otherwise, False is returned.
     def match(self, text):
         text = text.lower()
+        # first, check the ID
+        if text == self.bcid:
+            return True
+        # then, check the keywords
         for word in self.keywords:
             if text in word:
                 return True

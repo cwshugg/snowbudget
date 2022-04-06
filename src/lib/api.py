@@ -15,32 +15,46 @@ if dpath not in sys.path:                           # add to path
 
 # Local imports
 import lib.config as config
-from lib.bclass import BudgetClassType
+from lib.bclass import BudgetClass, BudgetClassType
 from lib.transaction import Transaction
 from lib.disk import Disk
 
+# Globals
+default_keywords = ["uncategorized", "default"]
+
+# API class
 class API:
     # Takes in the Config object that was parsed prior to this object's
     # creation.
     def __init__(self, conf):
-        # locate the default category for expenses
+        assert len(conf.classes) > 0, "found no classes in the config."
+        
+        # within the classes parsed by the config module, we'll try to find ones
+        # that are classified as "uncategorized" to save as defaults
         self.eclass_default = None
         self.iclass_default = None
-        assert len(conf.classes) > 0, "found no classes in the config."
         for c in conf.classes:
-            # first, check if the names match
-            if config.uncategorized_name.lower() in c.name.lower():
-                # if the names match, check the expense type 
+            # see if the name contains one of the keywords
+            if c.name.lower() in default_keywords:
+                # if it does, check the class type
                 if c.ctype == BudgetClassType.EXPENSE:
                     self.eclass_default = c
                 elif c.ctype == BudgetClassType.INCOME:
                     self.iclass_default = c
-
-        # assert that both were found
-        assert self.eclass_default != None, \
-               "failed to find a default class for expenses."
-        assert self.iclass_default != None, \
-               "failed to find a default class for income."
+        
+        # if one or both can't be found, we'll manually create them
+        if self.eclass_default == None:
+            self.eclass_default = BudgetClass("Uncategorized Expenses",
+                                              BudgetClassType.EXPENSE,
+                                              "For uncategorized expenses.",
+                                              keywords=default_keywords)
+            conf.classes.append(self.eclass_default)
+        if self.iclass_default == None:
+            self.iclass_default = BudgetClass("Uncategorized Income",
+                                              BudgetClassType.INCOME,
+                                              "For uncategorized income.",
+                                              keywords=default_keywords)
+            conf.classes.append(self.iclass_default)
 
         # set up a disk object, then initialize files (if not already existing)
         # for each budget class
@@ -99,7 +113,7 @@ class API:
     #   - If 'price' is negative, it's assumed to be an income.
     #   - If 'category' is blank, it's added to a default "nameless" income or
     #     expense class.
-    def add_transaction(self, price, bclass=None, vendor=None, description=None):
+    def add_transaction(self, bclass, price, vendor=None, description=None):
         t = Transaction(price, vendor, description)
         # if no budget class is given, resort to the default depending on the
         # given price
@@ -114,29 +128,15 @@ class API:
     # Returns a list with this content:
     #       [transaction_object, budget_class_object_it_belongs_to]
     # OR returns None if nothing matching is found.
-    def find_transaction(self, price=None, vendor=None, description=None,
-                         category=None):
-        # make sure we were given *something* to go off of
-        assert price != None or vendor != None or description != None or \
-               category != None, \
-               "some sort of information about the transaction must be given."
-        # if a category was given, search for the correct budget class
-        bclass = None
-        if category != None:
-            bclass = self.find_class(category)
-        
-        # before searching, compare all strings to lowercase
-        vendor = vendor.lower() if vendor != None else None
-        description = description.lower() if description != None else None
+    def find_transaction(self, text):
+        text = text.lower()
 
-        # now, build an array (either of length 1 or the entire set) and iterate
-        # through it to check all the appropriate classes
-        bcs = [bclass] if bclass != None else self.classes
-        for bc in bcs:
-            # search through each transaction in reverse order (most recent
+        # search through all budget classes
+        for bc in self.classes:
+            # search through each transaction in sorted order (most recent
             # will be checked first)
             for t in bc.sort():
-                if t.match(price=price, vendor=vendor, description=description):
+                if t.match(text):
                     return [t, bc]
         # if we get here, then nothing suitable was found
         return None
@@ -186,4 +186,10 @@ class API:
             c.dirty = False
             count += 1
         return count > 0
+
+    # ----------------------------- JSON Helpers ----------------------------- #
+    # Creates one monolithic JSON struct containing all budget classes and
+    # all transactions within them.
+    def to_json(self):
+        jdata = []
 

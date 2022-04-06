@@ -16,9 +16,6 @@ if dpath not in sys.path:                           # add to path
 # Local imports
 from lib.bclass import BudgetClass, BudgetClassType
 
-# Globals
-uncategorized_name = "Uncategorized"    # used as a default expense/income class
-
 # Main configuration class.
 class Config:
     # Takes in the file path.
@@ -94,14 +91,4 @@ class Config:
         # parse each budget class
         for entry in jdata["classes"]:
             parse_class(entry)
-
-        # add two default classes - one "uncategorized" for both expenses and
-        # income
-        keywords = ["uncategorized", "default"]
-        self.classes.append(BudgetClass("Uncategorized Expenses",
-                            BudgetClassType.EXPENSE, "Default expense category.",
-                            keywords))
-        self.classes.append(BudgetClass("Uncategorized Income",
-                            BudgetClassType.INCOME, "Default income category.",
-                            keywords))
 
