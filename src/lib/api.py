@@ -192,4 +192,8 @@ class API:
     # all transactions within them.
     def to_json(self):
         jdata = []
+        # iterate through all classes and add their JSON to the data
+        for c in self.classes:
+            jdata.append(c.to_json())
+        return jdata
 
