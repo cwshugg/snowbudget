@@ -6,6 +6,8 @@
 import os
 import sys
 from enum import Enum
+from datetime import datetime
+import hashlib
 
 # Enable import from the parent directory
 dpath = os.path.dirname(os.path.realpath(__file__)) # directory of this file
@@ -26,12 +28,24 @@ class BudgetClassType(Enum):
 # Represents a single "category"/"class" of budgeting.
 class BudgetClass:
     # Constructs a new expense class given a name, type, and description.
-    def __init__(self, name, ctype, desc, keywords=[], history=[]):
+    def __init__(self, name, ctype, desc, keywords=[], history=[], bcid=None):
         self.name = name
         self.ctype = ctype
         self.desc = desc
         self.keywords = keywords
         self.history = history
+        # we'll generate a unique ID string for this budget class if one wasn't
+        # passed into the function
+        self.bcid = bcid
+        if self.bcid == None:
+            # combine name, description, type, and keywords into one big string
+            self.bcid = self.name + self.desc + str(self.ctype)
+            for word in self.keywords:
+                self.bcid += word
+            # throw in the current datetime as well
+            self.bcid += "%d" % datetime.now().timestamp()
+            # now, hash the string to form the ID
+            self.bcid = hashlib.sha256(self.bcid.encode("utf-8")).hexdigest()
     
     # Used to create a string representation of the budget class object.
     def __str__(self):
@@ -53,6 +67,7 @@ class BudgetClass:
 
         # generate the final JSON
         jdata = {
+            "id": self.bcid,
             "name": self.name,
             "type": "income" if self.ctype == BudgetClassType.INCOME else "expense",
             "description": self.desc,
@@ -66,6 +81,7 @@ class BudgetClass:
     def from_json(jdata):
         # build a list of expected JSON fields and assert they exist
         expected = [
+            ["id", str, "each class file must have a unique \"id\" string."],
             ["name", str, "each class file must have a \"name\" string."],
             ["type", str, "each class file must have a \"type\" string."],
             ["description", str, "each class file must have a \"description\" string."],
@@ -88,7 +104,7 @@ class BudgetClass:
 
         # create the object
         c = BudgetClass(jdata["name"], ctype, jdata["description"],
-                        keywords=jdata["keywords"], history=hdata)
+                        keywords=jdata["keywords"], history=hdata, bcid=jdata["id"])
         return c
     
     # ----------------------------- Conversions ------------------------------ #

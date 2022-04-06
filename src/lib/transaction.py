@@ -7,6 +7,7 @@
 import os
 import sys
 from datetime import datetime
+import hashlib
 
 # Enable import from the parent directory
 dpath = os.path.dirname(os.path.realpath(__file__)) # directory of this file
@@ -17,11 +18,18 @@ if dpath not in sys.path:                           # add to path
 class Transaction:
     # Takes in the vendor of the transaction, the price (absolute value), and
     # one or two more optional fields.
-    def __init__(self, price, vendor=None, description=None, timestamp=datetime.now()):
+    def __init__(self, price, vendor="", description="", timestamp=datetime.now(), tid=None):
         self.price = price
         self.vendor = vendor
         self.desc = description
         self.timestamp = timestamp
+
+        # if one wasn't given, we'll generate a unique transaction ID
+        self.tid = tid
+        if self.tid == None:
+            self.tid = str(self.price) + str(self.vendor) + str(self.desc) + \
+                       str(self.timestamp)
+            self.tid = hashlib.sha256(self.tid.encode("utf-8")).hexdigest()
     
     # Used to build a string representation of a transaction.
     def __str__(self):
@@ -42,6 +50,7 @@ class Transaction:
     # Used to convert this object into a JSON object.
     def to_json(self):
         jdata = {
+            "id": self.tid,
             "price": self.price,
             "vendor": self.vendor,
             "description": self.desc,
@@ -54,6 +63,7 @@ class Transaction:
     def from_json(jdata):
         # build a list of expected JSON fields and assert they exist
         expected = [
+            ["id", str, "each transaction JSON must have a unique \"id\" string."],
             ["price", float, "each transaction JSON must have a \"price\" float."],
             ["vendor", str, "each transaction JSON must have a \"vendor\" string."],
             ["description", str, "each transaction JSON must have a \"description\" list."],
@@ -67,7 +77,8 @@ class Transaction:
             
         # create the object
         t = Transaction(jdata["price"], vendor=jdata["vendor"],
-                        description=jdata["description"], timestamp=ts)
+                        description=jdata["description"], timestamp=ts,
+                        tid=jdata["id"])
         return t
 
     # ------------------------------ Operations ------------------------------ #

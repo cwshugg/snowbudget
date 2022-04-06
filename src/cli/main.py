@@ -19,6 +19,7 @@ if dpath not in sys.path:                           # add to path
 from lib.config import Config
 from lib.api import API
 from lib.bclass import BudgetClassType
+from lib.transaction import Transaction
 
 # Globals
 config = None
@@ -55,7 +56,10 @@ def dollar_to_string(value):
 # ============================== Input Reading =============================== #
 # Takes a prompt and gets a string input from the user.
 def input_wrapper(prompt):
-    return input("%s%s%s " % (C_YELLOW, prompt, C_NONE))
+    try:
+        return input("%s%s%s " % (C_YELLOW, prompt, C_NONE))
+    except EOFError as e:
+        return None
 
 # Used to get a price value from stdin. Returns None on a failed parse.
 def input_price(prompt="Price:"):
@@ -189,6 +193,10 @@ def add_transaction():
         if not input_boolean("Is this correct?"):
             bclass = None
             continue
+
+    # add a transaction object to the correct bclass and save it
+    api.add_transaction(price, bclass=bclass, vendor=vendor, description=desc)
+    api.save()
     
 # Main function.
 def main():
