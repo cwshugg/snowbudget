@@ -97,14 +97,14 @@ class BudgetClass:
                "a class's \"type\" must be either \"expense\" or \"income\""
         ctype = BudgetClassType.INCOME if typestr == "income" else BudgetClassType.EXPENSE
 
-        # try to extract the list of history objects
-        hdata = []
-        for entry in jdata["history"]:
-            hdata.append(Transaction.from_json(entry))
-
-        # create the object
+        # create the budget class object
         c = BudgetClass(jdata["name"], ctype, jdata["description"],
-                        keywords=jdata["keywords"], history=hdata, bcid=jdata["id"])
+                        keywords=jdata["keywords"], history=[], bcid=jdata["id"])
+        
+        # try to extract the list of history objects and add them to the new
+        # budget class object
+        for entry in jdata["history"]:
+            c.add(Transaction.from_json(entry))
         return c
     
     # ----------------------------- Conversions ------------------------------ #
@@ -130,9 +130,11 @@ class BudgetClass:
                 return True
         return False
 
-    # Adds an 'transaction' object that represents a single transaction.
+    # Adds an 'transaction' object that represents a single transaction. Also
+    # sets the transaction's 'owner' field to point at this class.
     def add(self, transaction):
-        self.history.append(transaction)    
+        transaction.owner = self
+        self.history.append(transaction)
     
     # Removes the given transaction from the list. Returns True if the removal
     # succeeded, False otherwise.
@@ -141,6 +143,7 @@ class BudgetClass:
         if idx < 0:
             return False
         self.history.pop(idx)
+        transaction.owner = None
         return True
     
     # Sorts all contained transactions by datetime and returns the list sorted

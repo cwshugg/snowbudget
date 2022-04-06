@@ -18,7 +18,7 @@
             "name": "Restaurants",
             "type": "expense",
             "description": "Eating out.",
-            "keywords": ["food", "dinner", "lunch", "brunch", "breakfast"]
+            "keywords": ["restaurants", "food", "dinner", "lunch", "brunch", "breakfast"]
         },
         {
             "name": "Transportation",

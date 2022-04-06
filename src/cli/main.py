@@ -195,7 +195,8 @@ def add_transaction():
             continue
 
     # add a transaction object to the correct bclass and save it
-    api.add_transaction(bclass, price, vendor=vendor, description=desc)
+    t = Transaction(price, vendor=vendor, description=desc)
+    api.add_transaction(t, bclass)
     api.save()
     
 # Main function.

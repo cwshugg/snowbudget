@@ -18,11 +18,13 @@ if dpath not in sys.path:                           # add to path
 class Transaction:
     # Takes in the vendor of the transaction, the price (absolute value), and
     # one or two more optional fields.
-    def __init__(self, price, vendor="", description="", timestamp=datetime.now(), tid=None):
+    def __init__(self, price, vendor="", description="", timestamp=datetime.now(),
+                 tid=None, owner=None):
         self.price = price
         self.vendor = vendor
         self.desc = description
         self.timestamp = timestamp
+        self.owner = owner # backwards reference to owner budget class
 
         # if one wasn't given, we'll generate a unique transaction ID
         self.tid = tid

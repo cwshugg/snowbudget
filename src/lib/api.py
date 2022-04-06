@@ -108,20 +108,10 @@ class API:
         return None
     
     # ------------------------------- Updates -------------------------------- #
-    # Takes in information about a transaction and adds it to one expense class
-    # or income class.
-    #   - If 'price' is negative, it's assumed to be an income.
-    #   - If 'category' is blank, it's added to a default "nameless" income or
-    #     expense class.
-    def add_transaction(self, bclass, price, vendor=None, description=None):
-        t = Transaction(price, vendor, description)
-        # if no budget class is given, resort to the default depending on the
-        # given price
-        if bclass == None:
-            bclass = self.eclass_default if price >= 0.0 else self.iclass_default
-
+    # Takes in a transaction object and adds it to the budget class.
+    def add_transaction(self, transaction, bclass):
         # add the new transaction to the category and mark the class as dirty
-        bclass.add(t)
+        bclass.add(transaction)
         bclass.dirty = True
     
     # Used to search for a transaction given some sort of information about it.
@@ -141,28 +131,30 @@ class API:
         # if we get here, then nothing suitable was found
         return None
     
-    # Takes in a Transaction and its current budget class, as well as a new
-    # budget class, and moves the transaction from one to the other.
+    # Takes in a Transaction and a new budget class to assign it to. The
+    # transaction is removed from its current class and re-assigned to the
+    # new one.
     # Returns True if a move occurred, False otherwise.
-    def move_transaction(self, transaction, bclass_old, bclass_new):
-        # if the classes are the same, there's no move to do
-        if bclass_old == bclass_new:
+    def move_transaction(self, transaction, bclass):
+        old_bclass = transaction.owner
+        # if the current owner is the same as this bclass, there's nothing to do
+        if old_bclass == bclass:
             return False
         
         # attempt to remove (check for failure)
-        if not bclass_old.remove(transaction):
+        if not old_bclass.remove(transaction):
             return False
         
-        # push onto the new budget class, then mark both classes as dirty
-        bclass_new.add(transaction)
-        bclass_old.dirty = True
-        bclass_new.dirty = True
+        # add the transaction to the new class, then mark both classes as dirty
+        bclass.add(transaction)
+        old_bclass.dirty = True
+        bclass.dirty = True
         return True
     
     # Takes in a transaction and its budget class and removes it from the class.
     # Returns True on a successful deletion, false otherwise.
     def delete_transaction(self, transaction, bclass):
-        # attempt to remove
+        # attempt to remove, then mark the class as dirty
         if not bclass.remove(transaction):
             return False
         bclass.dirty = True
