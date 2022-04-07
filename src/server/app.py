@@ -46,7 +46,9 @@ def make_response_json(jdata={}, msg="", success=True, rstatus=200, rheaders={})
 
     # the given JSON data will become our "payload". Put together a wrapper
     # JSON object to contain the message and success indicator
-    alldata = {"message": msg, "success": success}
+    alldata = {"message": msg}
+    if rstatus == 200:
+        alldata["success"] = success
     if jdata != {}:
         alldata["payload"] = jdata
     resp = Response(response=json.dumps(alldata), status=rstatus)
@@ -66,29 +68,24 @@ def get_url_parameter(args, key):
         return None
     return p
 
-# Looks for a search query request parameter. Returns the string if found, or
-# None if nothing was found.
-def get_query(request):
-    text = request.args.get("query", "")
-    if text == "":
-        return None
-    return text
+# Returns true if all key-type pairs are present in the given JSON data.
+# Returns false otherwise.
+def check_json_fields(jdata, expects):
+    for e in expects:
+        if e[0] not in jdata or type(jdata[e[0]]) != e[1]:
+            return False
+    return True
 
-# Looks for the transaction ID in the request. Returns the string value, or
-# None if nothing is found.
-def get_transaction_id(request):
-    tid = request.args.get("tid", "")
-    if tid == "":
-        return None
-    return tid
-
-# Looks for the budget class ID in the request. Returns the string value, or
-# None if nothing is found.
-def get_class_id(request):
-    cid = request.args.get("cid", "")
-    if cid == "":
-        return None
-    return cid
+# Returns request JSON data, None if none was provided, or an Exception if
+# something went wrong trying to parse the data.
+def get_request_json(request):
+    try:
+        rdata = request.get_data()
+        if len(rdata) == 0:
+            return None
+        return json.loads(rdata.decode())
+    except Exception as e:
+        return Exception("FAILURE: %s" % e)
 
 # Helper function that extracts the 'Cookie' header and determines if the
 # request sender is authenticated.
@@ -165,14 +162,20 @@ def endpoint_bclass_get():
     if not is_authenticated(request):
         return make_response_json(rstatus=404)
 
-    # get search query
-    query = get_query(request)
-    if query == None:
-        return make_response_json(rstatus=400, success=False,
-                                  msg="Missing required parameters.")
+    # extract the json data in the request body
+    jdata = get_request_json(request)
+    if type(jdata) == Exception:
+        return make_response_json(rstatus=400, msg="Failed to parse request body.")
+    elif jdata == None:
+        return make_response_json(rstatus=400, msg="Missing request body.")
+
+    # make sure the correct entry is present in the JSON field
+    expect = [["query", str]]
+    if not check_json_fields(jdata, expect):
+        return make_response_json(success=False, msg="Missing JSON fields.")
     
     # invoke the API to search for a matching class
-    matches = api.find_class(query)
+    matches = api.find_class(jdata["query"])
     if len(matches) == 0:
         return make_response_json(success=False,
                                   msg="Couldn't find any matching classes.")
@@ -189,14 +192,20 @@ def endpoint_transaction_get():
     if not is_authenticated(request):
         return make_response_json(rstatus=404)
 
-    # get search query
-    query = get_query(request)
-    if query == None:
-        return make_response_json(rstatus=400, success=False,
-                                  msg="Missing required parameters.")
+    # extract the json data in the request body
+    jdata = get_request_json(request)
+    if type(jdata) == Exception:
+        return make_response_json(rstatus=400, msg="Failed to parse request body.")
+    elif jdata == None:
+        return make_response_json(rstatus=400, msg="Missing request body.")
     
+    # make sure the correct entry is present in the JSON field
+    expect = [["query", str]]
+    if not check_json_fields(jdata, expect):
+        return make_response_json(success=False, msg="Missing JSON fields.")
+
     # invoke the API to search for a matching transaction
-    matches = api.find_transaction(query)
+    matches = api.find_transaction(jdata["query"])
     if len(matches) == 0:
         return make_response_json(success=False,
                                   msg="Couldn't find any matching transactions.")
@@ -215,33 +224,25 @@ def endpoint_transaction_create():
     if not is_authenticated(request):
         return make_response_json(rstatus=404)
 
-    # get the class ID we'll add the transaction to
-    bcid = get_class_id(request)
-    if bcid == None:
-        return make_response_json(success=False,
-                                  msg="Missing required parameters.")
+    # extract the json data in the request body
+    jdata = get_request_json(request)
+    if type(jdata) == Exception:
+        return make_response_json(rstatus=400, msg="Failed to parse request body.")
+    elif jdata == None:
+        return make_response_json(rstatus=400, msg="Missing request body.")
 
-    # try to extract JSON data from the request
-    jdata = None
-    try:
-        jdata = json.loads(request.get_data().decode())
-    except Exception as e:
-        return make_response_json(success=False,
-                                  msg="Invalid request body.")
+    # we're expecting a class ID *and* other fields within the JSON data
+    expect = [["class_id", str], ["price", float], ["vendor", str],
+              ["description", str]]
+    if not check_json_fields(jdata, expect):
+        return make_response_json(success=False, msg="Missing JSON fields.")
 
-    # first, locate the class based on the class ID
-    matches = api.find_class(bcid)
+    # first, search for the class, given its ID 
+    matches = api.find_class(jdata["class_id"])
     if len(matches) == 0:
         return make_response_json(success=False,
                                   msg="Couldn't find any matching classes.")
-    bc = matches[0]
-
-    # next, make sure all fields are present in the JSON data
-    expect = [["price", float], ["vendor", str], ["description", str]]
-    for e in expect:
-        key = e[0]
-        if key not in jdata or type(jdata[key]) != e[1]:
-            return make_response_json(success=False, msg="Invalid request body.")
+    bc = matches[0] # grab first one (should only be one)
 
     # create a transaction struct and pass it to the API
     t = Transaction(jdata["price"], vendor=jdata["vendor"],
@@ -256,14 +257,20 @@ def endpoint_transaction_delete():
     if not is_authenticated(request):
         return make_response_json(rstatus=404)
 
-    # get the transaction ID from the request
-    tid = get_transaction_id(request)
-    if tid == None:
-        return make_response_json(rstatus=400, success=False,
-                                  msg="Missing required parameters.")
+    # extract the json data in the request body
+    jdata = get_request_json(request)
+    if type(jdata) == Exception:
+        return make_response_json(rstatus=400, msg="Failed to parse request body.")
+    elif jdata == None:
+        return make_response_json(rstatus=400, msg="Missing request body.")
+
+    # we're expecting a transaction ID
+    expect = [["transaction_id", str]]
+    if not check_json_fields(jdata, expect):
+        return make_response_json(success=False, msg="Missing JSON fields.")
     
     # retrieve the corresponding transaction object
-    matches = api.find_transaction(tid)
+    matches = api.find_transaction(jdata["transaction_id"])
     if len(matches) == 0:
         return make_response_json(success=False,
                                   msg="Couldn't find any matching transactions.")
@@ -280,12 +287,20 @@ def endpoint_transaction_edit():
     if not is_authenticated(request):
         return make_response_json(rstatus=404)
 
-    # get the transaction ID of the transaction to edit, then search for it
-    tid = get_transaction_id(request)
-    if tid == None:
-        return make_response_json(success=False,
-                                  msg="Missing required parameters.")
-    matches = api.find_transaction(tid)
+    # extract the json data in the request body
+    jdata = get_request_json(request)
+    if type(jdata) == Exception:
+        return make_response_json(rstatus=400, msg="Failed to parse request body.")
+    elif jdata == None:
+        return make_response_json(rstatus=400, msg="Missing request body.")
+
+    # we're expecting a transaction ID
+    expect = [["transaction_id", str]]
+    if not check_json_fields(jdata, expect):
+        return make_response_json(success=False, msg="Missing JSON fields.")
+
+    # search for the transaction
+    matches = api.find_transaction(jdata["transaction_id"])
     if len(matches) == 0:
         return make_response_json(success=False,
                                   msg="Couldn't find any matching transactions.")
@@ -293,50 +308,37 @@ def endpoint_transaction_edit():
 
     # if the user specified a class ID, we'll move the transaction to the
     # corresponding class
-    bcid = get_class_id(request)
     bc = None
-    if bcid != None:
+    if "class_id" in jdata and type(jdata["class_id"]) == str:
         # locate the class based on the class ID
-        matches = api.find_class(bcid)
+        matches = api.find_class(jdata["class_id"])
         if len(matches) == 0:
             return make_response_json(success=False,
                                       msg="Couldn't find any matching classes.")
         bc = matches[0]
 
-    # try to extract JSON data from the request
-    jdata = None
-    rdata = request.get_data()
-    rdata = None if rdata == b'' else rdata
-
-    # use the JSON data (if we got some) to modify the transaction
+    
+    # check to make sure the types of any present fields are correct
     changes = 0
-    if rdata != None:
-        try:
-            jdata = json.loads(rdata.decode())
-        except Exception as e:
-            return make_response_json(success=False,
-                                      msg="Invalid request body.")
+    expect = [["price", float], ["vendor", str], ["description", str]]
+    for e in expect:
+        key = e[0]
+        if key in jdata:
+            if type(jdata[key]) != e[1]:
+                return make_response_json(success=False, msg="Invalid request body.")
+        else:
+            jdata[key] = None
     
-        # check to make sure the types of any present fields are correct
-        expect = [["price", float], ["vendor", str], ["description", str]]
-        for e in expect:
-            key = e[0]
-            if key in jdata:
-                if type(jdata[key]) != e[1]:
-                    return make_response_json(success=False, msg="Invalid request body.")
-            else:
-                jdata[key] = None
-    
-        # make updates to the transaction where appropriate
-        if jdata["price"] != None:
-            t.price = jdata["price"]
-            changes += 1
-        if jdata["vendor"] != None:
-            t.vendor = jdata["vendor"]
-            changes += 1
-        if jdata["description"] != None:
-            t.desc = jdata["description"]
-            changes += 1
+    # make updates to the transaction where appropriate
+    if jdata["price"] != None:
+        t.price = jdata["price"]
+        changes += 1
+    if jdata["vendor"] != None:
+        t.vendor = jdata["vendor"]
+        changes += 1
+    if jdata["description"] != None:
+        t.desc = jdata["description"]
+        changes += 1
 
     # move groups if necessary
     if bc != None:
