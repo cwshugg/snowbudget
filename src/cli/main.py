@@ -204,7 +204,7 @@ def summarize():
         transactions = c.sort()
         for t in transactions:
             stat_total += t.price
-        latest = None if len(transactions) == 0 else transactions[-1]
+        latest = None if len(transactions) == 0 else transactions[0]
 
         # build a list of statistic lines to print
         prefix2 = STAB_TREE3 if prefix == STAB_TREE2 else STAB
