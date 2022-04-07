@@ -44,16 +44,18 @@ class API:
         
         # if one or both can't be found, we'll manually create them
         if self.eclass_default == None:
+            keywords = default_keywords + ["expenses"]
             self.eclass_default = BudgetClass("Uncategorized Expenses",
                                               BudgetClassType.EXPENSE,
                                               "For uncategorized expenses.",
-                                              keywords=default_keywords)
+                                              keywords=keywords)
             conf.classes.append(self.eclass_default)
         if self.iclass_default == None:
+            keywords = default_keywords + ["income"]
             self.iclass_default = BudgetClass("Uncategorized Income",
                                               BudgetClassType.INCOME,
                                               "For uncategorized income.",
-                                              keywords=default_keywords)
+                                              keywords=keywords)
             conf.classes.append(self.iclass_default)
 
         # set up a disk object, then initialize files (if not already existing)
@@ -115,11 +117,11 @@ class API:
         bclass.dirty = True
     
     # Used to search for a transaction given some sort of information about it.
-    # Returns a list with this content:
-    #       [transaction_object, budget_class_object_it_belongs_to]
-    # OR returns None if nothing matching is found.
+    # Returns a list of transaction objects that matched the text in one way
+    # or another. Returns an empty list if no match is found.
     def find_transaction(self, text):
         text = text.lower()
+        result = []
 
         # search through all budget classes
         for bc in self.classes:
@@ -127,9 +129,9 @@ class API:
             # will be checked first)
             for t in bc.sort():
                 if t.match(text):
-                    return [t, bc]
-        # if we get here, then nothing suitable was found
-        return None
+                    result.append(t)
+        # return the resulting list
+        return result
     
     # Takes in a Transaction and a new budget class to assign it to. The
     # transaction is removed from its current class and re-assigned to the
@@ -151,9 +153,13 @@ class API:
         bclass.dirty = True
         return True
     
-    # Takes in a transaction and its budget class and removes it from the class.
+    # Takes in a transaction and deletes it from the class.
     # Returns True on a successful deletion, false otherwise.
-    def delete_transaction(self, transaction, bclass):
+    def delete_transaction(self, transaction):
+        # retrieve the transaction's owner
+        bclass = transaction.owner
+        assert bclass != None, "the given transaction has no owner"
+
         # attempt to remove, then mark the class as dirty
         if not bclass.remove(transaction):
             return False

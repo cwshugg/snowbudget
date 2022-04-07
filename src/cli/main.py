@@ -8,6 +8,7 @@
 import sys
 import os
 import argparse
+import json
 
 # Enable import from the parent directory
 dpath = os.path.dirname(os.path.realpath(__file__)) # directory of this file
@@ -48,28 +49,41 @@ def fatality(msg=None, exception=None):
     sys.stderr.write(message + "\n")
     sys.exit(1)
 
+# Used when detecting SIGINTs and EOFs.
+def abrupt_exit():
+    sys.stdout.write("\n")
+    sys.stdout.flush()
+    sys.exit(0)
+
 # Used to convert a float to a dollar string
 def dollar_to_string(value):
+    if value < 0.0:
+        return "-$%.2f" % abs(value)
     return "$%.2f" % value
 
 
 # ============================== Input Reading =============================== #
 # Takes a prompt and gets a string input from the user.
 def input_wrapper(prompt):
-    try:
-        return input("%s%s%s " % (C_YELLOW, prompt, C_NONE))
-    except EOFError as e:
-        return None
+    result = ""
+    # we'll read input until something is given (or EOF)
+    while result == "":
+        try:
+            result = input("%s%s%s " % (C_YELLOW, prompt, C_NONE))
+        except EOFError as e:
+            abrupt_exit()
+    return None if result == "" else result
 
 # Used to get a price value from stdin. Returns None on a failed parse.
 def input_price(prompt="Price:"):
-    price = input_wrapper(prompt).strip()
-    try:
-        price = float(price)
-        assert price > 0.0
-        return price
-    except Exception as e:
-        return None
+    while True:
+        price = input_wrapper(prompt).strip()
+        try:
+            price = float(price)
+            assert price > 0.0
+            return price
+        except Exception as e:
+            print("Please enter a price.")
 
 # Reads from stdin to get a budget class from the user. If a match isn't found
 # then None is returned. Otherwise, the BudgetClass object is returned.
@@ -92,6 +106,20 @@ def input_boolean(prompt):
             return False
         print("Please enter y/yes or n/no.")
 
+# Prompts the user for an integer, enforcing an optional upper/lower bound.
+def input_number(prompt, upper=None, lower=None):
+    has_bound = lower != None and upper != None
+    while True:
+        val = input_wrapper(prompt).strip()
+        try:
+            # try to convert to an integer and assert it's in range
+            val = int(val)
+            assert val >= lower and val <= upper
+            return val
+        except Exception as e:
+            print("Please enter a number%s." %
+                  (" between %d and %d" % (lower, upper) if has_bound else ""))
+
 # ============================= Argument Parsing ============================= #
 # Responsible for parsing command-line arguments.
 def parse_args():
@@ -105,11 +133,14 @@ def parse_args():
     p.add_argument("--config", metavar="CONFIG_JSON", required=True,
                    help="Takes in the path to your snowbudget configuration file.",
                    default=None, nargs=1, type=str)
-    p.add_argument("--list",
-                   help="Lists all budget classes and basic statistics for each.",
+    p.add_argument("--json",
+                   help="Prints a JSON representation of all budget classes.",
                    default=False, action="store_true")
     p.add_argument("--add",
                    help="Prompts the user to enter information for a new transaction.",
+                   default=False, action="store_true")
+    p.add_argument("--remove",
+                   help="Prompts the user to enter information to remove a transaction.",
                    default=False, action="store_true")
 
     return vars(p.parse_args())
@@ -117,13 +148,13 @@ def parse_args():
 
 # ============================ Main Functionality ============================ #
 # Prints basic information about each budget class to the terminal.
-def list_budget_classes():
+def summarize():
     # get all expense and income classes
     eclasses = api.get_classes(ctype=BudgetClassType.EXPENSE)
     iclasses = api.get_classes(ctype=BudgetClassType.INCOME)
 
     # Helper function for printing a budget class
-    def list_budget_class(c, prefix):
+    def summarize_budget_class(c, prefix):
         # print the name and description
         color = C_GREEN if c.ctype == BudgetClassType.INCOME else C_YELLOW
         print("%s%s%s%s: %s" % (prefix, color, c.name, C_NONE, c.desc))
@@ -158,8 +189,7 @@ def list_budget_classes():
     print("%d Expense Classes:" % eclen)
     for i in range(eclen):
         pfx = STAB_TREE2 if i < eclen - 1 else STAB_TREE1
-        ectotal += list_budget_class(eclasses[i], pfx)
-    print("Total expenses: %s\n" % dollar_to_string(ectotal))
+        ectotal += summarize_budget_class(eclasses[i], pfx)
     
     # process all income classes
     iclen = len(iclasses)
@@ -167,8 +197,19 @@ def list_budget_classes():
     print("%d Income Classes:" % iclen)
     for i in range(iclen):
         pfx = STAB_TREE2 if i < iclen - 1 else STAB_TREE1
-        ictotal += list_budget_class(iclasses[i], pfx)
-    print("Total income: %s\n" % dollar_to_string(ictotal))
+        ictotal += summarize_budget_class(iclasses[i], pfx)
+    
+    # compute and print totals
+    net = ictotal - ectotal
+    sys.stdout.write("\n")
+    print("Total expenses:  %s" % dollar_to_string(ectotal))
+    print("Total income:    %s" % dollar_to_string(ictotal))
+    print("----")
+    print("Net:             %s" % dollar_to_string(net))
+
+# Handles the '--json' option.
+def list_json():
+    print(json.dumps(api.to_json(), indent=4))
 
 # Prompts the user for information to add a new transaction.
 def add_transaction():
@@ -198,6 +239,34 @@ def add_transaction():
     t = Transaction(price, vendor=vendor, description=desc)
     api.add_transaction(t, bclass)
     api.save()
+
+# Prompts the user for information to delete an existing transaction.
+def remove_transaction():
+    while True:
+        # prompt the user to supply some sort of text to search for a transaction
+        text = input_wrapper("Search:")
+        if text == None:
+            sys.stderr.write("You didn't enter any text.\n")
+            sys.exit(1)
+    
+        # now, invoke the API to search for a transaction loop back around if
+        # nothing was found
+        ts = api.find_transaction(text)
+        tlen = len(ts)
+        if tlen == 0:
+            print("Couldn't find anything.")
+            continue
+
+        # print and ask for the user to choose a transaction
+        print("Found %d transactions. Please choose one to remove:" % tlen)
+        for i in range(tlen):
+            print("%d. %s" % ((i + 1), ts[i]))
+        idx = input_number("Transaction number:", upper=tlen, lower=1) - 1
+
+        # invoke the API to delete the transaction, then save
+        api.delete_transaction(ts[idx])
+        api.save()
+        break
     
 # Main function.
 def main():
@@ -217,15 +286,23 @@ def main():
     except Exception as e:
         fatality(msg="failed to initialize API", exception=e)
 
-    # if '--list' was given, we'll list basic budget information
-    if "list" in args and args["list"]:
-        list_budget_classes()
+    # if '--json' was given, we'll dump json
+    if "json" in args and args["json"]:
+        list_json()
         sys.exit(0)
 
     # if '--add' was given, we'll try to add, then exit
     if "add" in args and args["add"]:
         add_transaction()
         sys.exit(0)
+
+    # if '--remove' was given, we'll try to remove, then exit
+    if "remove" in args and args["remove"]:
+        remove_transaction()
+        sys.exit(0)
+
+    # if nothing else was provided, we'll print a summary
+    summarize()
 
 # =============================== Runner Code ================================ #
 if __name__ == "__main__":
