@@ -28,12 +28,13 @@ class BudgetClassType(Enum):
 # Represents a single "category"/"class" of budgeting.
 class BudgetClass:
     # Constructs a new expense class given a name, type, and description.
-    def __init__(self, name, ctype, desc, keywords=[], history=[], bcid=None):
-        self.name = name
-        self.ctype = ctype
-        self.desc = desc
-        self.keywords = keywords
-        self.history = history
+    def __init__(self, name, ctype, desc, keywords=[], history=[], default=False, bcid=None):
+        self.name = name            # name of the class
+        self.ctype = ctype          # type of class (EXPENSE, INCOME, etc.)
+        self.desc = desc            # description of this class
+        self.keywords = keywords    # keywords to identify this class
+        self.history = history      # transaction history
+        self.default = default      # whether or not the class is a default
         # we'll generate a unique ID string for this budget class if one wasn't
         # passed into the function
         self.bcid = bcid
@@ -72,7 +73,8 @@ class BudgetClass:
             "type": "income" if self.ctype == BudgetClassType.INCOME else "expense",
             "description": self.desc,
             "keywords": self.keywords,
-            "history": hdata
+            "history": hdata,
+            "default": self.default
         }
         return jdata
     
@@ -86,7 +88,8 @@ class BudgetClass:
             ["type", str, "each class file must have a \"type\" string."],
             ["description", str, "each class file must have a \"description\" string."],
             ["keywords", list, "each class file must have \"keywords\" list."],
-            ["history", list, "each class file must have a \"history\" list."]
+            ["history", list, "each class file must have a \"history\" list."],
+            ["default", bool, "each class file must have a \"default\" boolean."]
         ]
         for f in expected:
             assert f[0] in jdata and type(jdata[f[0]]) == f[1], f[2]
@@ -99,7 +102,8 @@ class BudgetClass:
 
         # create the budget class object
         c = BudgetClass(jdata["name"], ctype, jdata["description"],
-                        keywords=jdata["keywords"], history=[], bcid=jdata["id"])
+                        keywords=jdata["keywords"], history=[],
+                        default=jdata["default"], bcid=jdata["id"])
         
         # try to extract the list of history objects and add them to the new
         # budget class object

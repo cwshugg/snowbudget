@@ -19,44 +19,24 @@ from lib.bclass import BudgetClass, BudgetClassType
 from lib.transaction import Transaction
 from lib.disk import Disk
 
-# Globals
-default_keywords = ["uncategorized", "default"]
-
 # API class
 class API:
     # Takes in the Config object that was parsed prior to this object's
     # creation.
     def __init__(self, conf):
         assert len(conf.classes) > 0, "found no classes in the config."
-        
-        # within the classes parsed by the config module, we'll try to find ones
-        # that are classified as "uncategorized" to save as defaults
-        self.eclass_default = None
-        self.iclass_default = None
+        # search through each class and make sure there's only ONE default
+        # class for each type (EXPENSE, INCOME)
+        edefaults = []
+        idefaults = []
         for c in conf.classes:
-            # see if the name contains one of the keywords
-            if c.name.lower() in default_keywords:
-                # if it does, check the class type
-                if c.ctype == BudgetClassType.EXPENSE:
-                    self.eclass_default = c
-                elif c.ctype == BudgetClassType.INCOME:
-                    self.iclass_default = c
-        
-        # if one or both can't be found, we'll manually create them
-        if self.eclass_default == None:
-            keywords = default_keywords + ["expenses"]
-            self.eclass_default = BudgetClass("Uncategorized Expenses",
-                                              BudgetClassType.EXPENSE,
-                                              "For uncategorized expenses.",
-                                              keywords=keywords)
-            conf.classes.append(self.eclass_default)
-        if self.iclass_default == None:
-            keywords = default_keywords + ["income"]
-            self.iclass_default = BudgetClass("Uncategorized Income",
-                                              BudgetClassType.INCOME,
-                                              "For uncategorized income.",
-                                              keywords=keywords)
-            conf.classes.append(self.iclass_default)
+            if c.default:
+                if c.ctype == BudgetClassType.INCOME:
+                    idefaults.append(c)
+                else:
+                    edefaults.append(c)
+        assert len(edefaults) <= 1, "there cannot be more than one default expense class."
+        assert len(idefaults) <= 1, "there cannot be more than one default income class."
 
         # set up a disk object, then initialize files (if not already existing)
         # for each budget class
@@ -84,13 +64,6 @@ class API:
             result.append(bclass)
         return result
     
-    # Takes in a class type and returns the appropriate default budget class.
-    # If no ctype is given, the default class for expenses is returned.
-    def get_default_class(self, ctype=None):
-        if ctype == None or ctype == BudgetClassType.EXPENSE:
-            return self.eclass_default
-        return self.iclass_default
-
     # Takes in text and searches the expense classes for a matching one.
     # Returns a list of matching BudgetClass objects.
     def find_class(self, text, ctype=None):

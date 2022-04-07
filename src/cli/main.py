@@ -269,11 +269,6 @@ def add_transaction():
         if bclass == None:
             print("Couldn't find a matching budget class.")
             continue
-        # ask the user if this is the class they want
-        print("Found class: %s" % bclass)
-        if not input_boolean("Is this correct?"):
-            bclass = None
-            continue
 
     # add a transaction object to the correct bclass and save it
     t = Transaction(price, vendor=vendor, description=desc)

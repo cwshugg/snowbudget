@@ -6,61 +6,85 @@
             "name": "Groceries",
             "type": "expense",
             "description": "Foodstuffs.",
-            "keywords": ["groceries", "grocery", "store"]
+            "keywords": ["groceries", "grocery", "store"],
+            "default": false
         },
         {
             "name": "Supplies",
             "type": "expense",
             "description": "Non-food supplies.",
-            "keywords": ["supplies", "supply", "tools"]
+            "keywords": ["supplies", "supply", "tools"],
+            "default": false
         },
         {
             "name": "Restaurants",
             "type": "expense",
             "description": "Eating out.",
-            "keywords": ["restaurants", "food", "dinner", "lunch", "brunch", "breakfast"]
+            "keywords": ["restaurants", "food", "dinner", "lunch", "brunch", "breakfast"],
+            "default": false
         },
         {
             "name": "Transportation",
             "type": "expense",
             "description": "Gas, tickets, etc.",
-            "keywords": ["transportation", "car", "gas", "ticket"]
+            "keywords": ["transportation", "car", "gas", "ticket"],
+            "default": false
         },
         {
             "name": "Recreation",
             "type": "expense",
             "description": "Fun stuff.",
-            "keywords": ["recreation", "fun"]
+            "keywords": ["recreation", "fun"],
+            "default": false
         },
         {
             "name": "Subscriptions",
             "type": "expense",
             "description": "Recurring expenses for services.",
-            "keywords": ["subscriptions", "subscribe"]
+            "keywords": ["subscriptions", "subscribe"],
+            "default": false
         },
         {
             "name": "Housing",
             "type": "expense",
             "description": "Expenses for housing.",
-            "keywords": ["housing", "rent", "utilities", "utils", "water", "heating", "electricity", "internet"]
+            "keywords": ["housing", "rent", "utilities", "utils", "water", "heating", "electricity", "internet"],
+            "default": false
         },
         {
             "name": "Medical",
             "type": "expense",
             "description": "Medical/health-related expenses.",
-            "keywords": ["medical", "doctor", "medicine"]
+            "keywords": ["medical", "doctor", "medicine"],
+            "default": false
         },
         {
             "name": "Salary",
             "type": "income",
             "description": "Money earned from my job.",
-            "keywords": ["salary", "job", "wage", "paycheck", "bonus"]
+            "keywords": ["salary", "job", "wage", "paycheck", "bonus"],
+            "default": false
         },
         {
             "name": "Investments",
             "type": "income",
             "description": "Money gained from investments.",
-            "keywords": ["investments", "stocks"]
+            "keywords": ["investments", "stocks"],
+            "default": false
+        },
+        {
+            "name": "Uncategorized Expenses",
+            "type": "expense",
+            "description": "For any miscellaneous expenses.",
+            "keywords": ["uncategorized", "default", "expenses"],
+            "default": true
+        },
+        {
+            "name": "Uncategorized Income",
+            "type": "income",
+            "description": "For any miscellaneous income.",
+            "keywords": ["uncategorized", "default", "income"],
+            "default": true
         }
     ],
     "save_location": "/home/ugrads/nonmajors/cwshugg/personal/snowbudget-save"
