@@ -13,6 +13,11 @@ import csv
 import json
 app = Flask(__name__)
 
+# Local imports
+from backend import backend_get_api
+
+# Globals
+api = backend_get_api()
 
 # ============================= Helper Functions ============================= #
 # Makes a 400 BAD REQUEST response message.
@@ -24,8 +29,9 @@ def make_response_400(msg):
 
 # Takes a dictionary of data and adds an optional message to it, then packs it
 # all into a Flask Response object.
-def make_response_json(jdata={}, msg=""):
-    jdata["message"] = msg
+def make_response_json(jdata={}, msg=None):
+    if msg != None:
+        jdata["message"] = msg
     resp = Response(response=json.dumps(jdata), status=200)
     resp.headers["Content-Type"] = "application/json"
     return resp
@@ -60,7 +66,7 @@ def get_transaction_id(request):
 # message to the client.
 @app.route("/")
 def endpoint_root():
-    return make_response_json(msg="sb functional.")
+    return make_response_json(jdata=api.to_json())
 
 # Used to retrieve a budget class.
 @app.route("/bclass/get", methods = ["GET"])
@@ -72,34 +78,6 @@ def endpoint_bclass_get():
     
     # TODO
     return make_response_json(msg="You requested a budget class: %s" % bcid)
-
-# Used to create a new budget class.
-@app.route("/bclass/create", methods = ["POST"])
-def endpoint_bclass_create():
-    # TODO
-    return make_response_json(msg="todo: /bclass/create")
-
-# Used to delete a budget class.
-@app.route("/bclass/delete", methods = ["POST"])
-def endpoint_bclass_delete():
-    # get the budget class ID
-    bcid = get_bclass_id(request)
-    if bcid == None:
-        return make_response_400("Missing required fields.")
-    
-    # TODO
-    return make_response_json(msg="todo: /bclass/delete")
-
-# Used to edit an existing budget class.
-@app.route("/bclass/edit", methods = ["POST"])
-def endpoint_bclass_edit():
-    # get the budget class ID
-    bcid = get_bclass_id(request)
-    if bcid == None:
-        return make_response_400("Missing required fields.")
-    
-    # TODO
-    return make_response_json(msg="todo: /bclass/edit")
 
 
 # ========================== Transaction Endpoints =========================== #

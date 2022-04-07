@@ -15,14 +15,14 @@ if dpath not in sys.path:                           # add to path
 
 # Local imports
 from server.app import app
-
-# Globals
-flask_addr = "0.0.0.0"
-flask_port = 7669
+from server.auth import auth_init
+import server.config as config
 
 # Main function
 def main():
-    app.run(flask_addr, port=flask_port)
+    # initialize any needed functionality then run the flask app
+    auth_init()
+    app.run(config.server_addr, port=config.server_port)
 
 # Runner code
 if (__name__ == "__main__"):

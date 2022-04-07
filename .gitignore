@@ -1,3 +1,6 @@
 # python artifacts
 __pycache__
 
+# server directories to ignore
+keys
+
