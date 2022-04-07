@@ -92,22 +92,18 @@ class API:
         return self.iclass_default
 
     # Takes in text and searches the expense classes for a matching one.
-    # Returns the BudgetClass object, or None if one isn't found.
-    # This does a "loose" search; all strings are compared in lowercase and a
-    # match succeeds if 'text' is IN a class's keywords, not necessarily EQUAL.
-    # The type is optional. If a type is given, *only* those classes with the
-    # matching type will be searched. If a type isn't given, they will all be
-    # searched, and the first match will be returned.
+    # Returns a list of matching BudgetClass objects.
     def find_class(self, text, ctype=None):
         text = text.lower()
+        result = []
         for c in self.classes:
             # if a type was given, only consider the ones with a matching type
             if ctype != None and c.ctype != ctype:
                 continue
             # attempt to match the class - return on true
             if c.match(text):
-                return c
-        return None
+                result.append(c)
+        return result
     
     # ------------------------------- Updates -------------------------------- #
     # Takes in a transaction object and adds it to the budget class.

@@ -35,7 +35,7 @@ C_NONE = "\033[0m"
 C_RED = "\033[31m"
 C_GREEN = "\033[32m"
 C_YELLOW = "\033[33m"
-
+C_CYAN = "\033[36m"
 
 # ============================= Helper Functions ============================= #
 # Used to print a fatal error and exit.
@@ -63,21 +63,25 @@ def dollar_to_string(value):
 
 
 # ============================== Input Reading =============================== #
-# Takes a prompt and gets a string input from the user.
-def input_wrapper(prompt):
-    result = ""
+# Takes a prompt and gets a string input from the user. By default, blanks are
+# not allowed, but they can be by toggling the switch.
+def input_wrapper(prompt, blank_ok=False, color=C_YELLOW):
     # we'll read input until something is given (or EOF)
-    while result == "":
+    while True:
         try:
-            result = input("%s%s%s " % (C_YELLOW, prompt, C_NONE))
+            result = input("%s%s%s " % (color, prompt, C_NONE))
+            if result != "" or blank_ok:
+                return result
         except EOFError as e:
             abrupt_exit()
-    return None if result == "" else result
+    return None
 
 # Used to get a price value from stdin. Returns None on a failed parse.
-def input_price(prompt="Price:"):
+def input_price(prompt="Price:", blank_ok=False):
     while True:
-        price = input_wrapper(prompt).strip()
+        price = input_wrapper(prompt, blank_ok=blank_ok).strip()
+        if price == "" and blank_ok:
+            return None
         try:
             price = float(price)
             assert price > 0.0
@@ -87,14 +91,22 @@ def input_price(prompt="Price:"):
 
 # Reads from stdin to get a budget class from the user. If a match isn't found
 # then None is returned. Otherwise, the BudgetClass object is returned.
-def input_budget_class(prompt="Budget class:"):
-    bcname = input_wrapper(prompt).strip()
-    # try to find the correct category and prompt the user if it's correct
-    bclass = None
-    if len(bcname) > 0:
-        return api.find_class(bcname)
-    # if nothing was givne, default to the expense default class
-    return api.get_default_class()
+def input_budget_class(prompt="[SEARCH] Budget class:"):
+    while True:
+        bcname = input_wrapper(prompt, color=C_CYAN).strip()
+        classes = api.find_class(bcname)
+        clen = len(classes)
+        # if nothing was found, say so and loop again
+        if clen == 0:
+            print("Couldn't find anything.")
+            continue
+
+        # otherwise we'll have the user pick one out
+        print("Found %d budget classes. Please choose one:" % clen)
+        for i in range(clen):
+            print("%d. %s" % ((i + 1), classes[i]))
+        idx = input_number("Class number:", upper=clen, lower=1) - 1
+        return classes[idx]
 
 # Asks the user a yes/no question.
 def input_boolean(prompt):
@@ -120,6 +132,31 @@ def input_number(prompt, upper=None, lower=None):
             print("Please enter a number%s." %
                   (" between %d and %d" % (lower, upper) if has_bound else ""))
 
+# Reads user input to get a specific transaction.
+def input_transaction(prompt="[SEARCH] Transaction:"):
+    while True:
+        # prompt the user to supply some sort of text to search for a transaction
+        text = input_wrapper(prompt, color=C_CYAN)
+        if text == None:
+            sys.stderr.write("You didn't enter any text.\n")
+            sys.exit(1)
+    
+        # now, invoke the API to search for a transaction loop back around if
+        # nothing was found
+        ts = api.find_transaction(text)
+        tlen = len(ts)
+        if tlen == 0:
+            print("Couldn't find anything.")
+            continue
+    
+        # print and ask for the user to choose a transaction
+        print("Found %d transactions. Please choose one:" % tlen)
+        for i in range(tlen):
+            print("%d. %s" % ((i + 1), ts[i]))
+        idx = input_number("Transaction number:", upper=tlen, lower=1) - 1
+        return ts[idx]
+
+
 # ============================= Argument Parsing ============================= #
 # Responsible for parsing command-line arguments.
 def parse_args():
@@ -137,10 +174,13 @@ def parse_args():
                    help="Prints a JSON representation of all budget classes.",
                    default=False, action="store_true")
     p.add_argument("--add",
-                   help="Prompts the user to enter information for a new transaction.",
+                   help="Add a new transaction.",
                    default=False, action="store_true")
     p.add_argument("--remove",
-                   help="Prompts the user to enter information to remove a transaction.",
+                   help="Remove an existing transaction.",
+                   default=False, action="store_true")
+    p.add_argument("--edit",
+                   help="Edit an existing transaction.",
                    default=False, action="store_true")
 
     return vars(p.parse_args())
@@ -219,8 +259,8 @@ def add_transaction():
         sys.exit(1)
 
     # read the vendor, description, and category as input
-    vendor = input_wrapper("Vendor:").strip()
-    desc = input_wrapper("Description:").strip()
+    vendor = input_wrapper("Vendor:", blank_ok=True).strip()
+    desc = input_wrapper("Description:", blank_ok=True).strip()
 
     # get the budget class
     bclass = None
@@ -242,31 +282,58 @@ def add_transaction():
 
 # Prompts the user for information to delete an existing transaction.
 def remove_transaction():
-    while True:
-        # prompt the user to supply some sort of text to search for a transaction
-        text = input_wrapper("Search:")
-        if text == None:
-            sys.stderr.write("You didn't enter any text.\n")
-            sys.exit(1)
+    # get a transaction as input, then invoke the API to delete the transaction
+    # and write out to disk
+    t = input_transaction()
+    api.delete_transaction(t)
+    api.save()
+
+# Handles the '--edit' option.
+def edit_transaction():
+    t = input_transaction()
+    updates = []
+
+    # prompt the user to edit the price
+    print("Current price: %s" % dollar_to_string(t.price))
+    price = input_price("New price:", blank_ok=True)
+    if price != None:
+        t.price = price
+        updates.append("Price updated to %s." % dollar_to_string(t.price))
+
+    # prompt the user to edit the vendor
+    print("Current vendor: %s" % ("(none" if t.vendor == None else t.vendor))
+    vendor = input_wrapper("New vendor:", blank_ok=True)
+    if vendor != "":
+        t.vendor = vendor
+        updates.append("Vendor updated to \"%s\"." % t.vendor)
     
-        # now, invoke the API to search for a transaction loop back around if
-        # nothing was found
-        ts = api.find_transaction(text)
-        tlen = len(ts)
-        if tlen == 0:
-            print("Couldn't find anything.")
-            continue
-
-        # print and ask for the user to choose a transaction
-        print("Found %d transactions. Please choose one to remove:" % tlen)
-        for i in range(tlen):
-            print("%d. %s" % ((i + 1), ts[i]))
-        idx = input_number("Transaction number:", upper=tlen, lower=1) - 1
-
-        # invoke the API to delete the transaction, then save
-        api.delete_transaction(ts[idx])
+    # prompt user to edit the description
+    print("Current description: %s" % ("(none)" if t.desc == None else t.desc))
+    desc = input_wrapper("New description:", blank_ok=True)
+    if desc != "":
+        t.desc = desc
+        updates.append("Description updated to \"%s\"." % t.desc)
+    
+    # ask if the user wants to move it to a new class
+    if input_boolean("Move to a different class?"):
+        bclass_new = input_budget_class()
+        bclass_old = t.owner
+        # move the transaction between classes
+        if api.move_transaction(t, bclass_new):
+            updates.append("Moved to a new class: '%s' --> '%s'." %
+                           (bclass_old.name, bclass_new.name))
+    
+    # display updates to the user
+    if len(updates) == 0:
+        print("\nNo changes made.")
+    else:
+        print("\nChanges made:")
+        ulen = len(updates)
+        for i in range(ulen):
+            prefix = STAB_TREE1 if i == ulen - 1 else STAB_TREE2
+            print("%s%s" % (prefix, updates[i]))
+        # save to disk
         api.save()
-        break
     
 # Main function.
 def main():
@@ -299,6 +366,11 @@ def main():
     # if '--remove' was given, we'll try to remove, then exit
     if "remove" in args and args["remove"]:
         remove_transaction()
+        sys.exit(0)
+
+    # if '--edit' was given, we'll try to edit, then exit
+    if "edit" in args and args["edit"]:
+        edit_transaction()
         sys.exit(0)
 
     # if nothing else was provided, we'll print a summary
