@@ -1,0 +1,124 @@
+:root
+{
+    --color-bg1: rgb(0, 0, 0);
+    --color-bg2: rgb(16, 16, 16);
+    --color-bg3: rgb(24, 24, 24);
+    --color-text1: rgb(225, 225, 225);
+    --color-acc1: rgb(153, 217, 234);
+    --color-acc2: rgb(104, 133, 232);
+    --color-acc3: rgb(0, 190, 225);
+    
+    --color-code-bg: rgb(32, 32, 32);
+    --color-code-text: var(--color-acc3);
+}
+
+
+/********** fonts **********/
+.font-main
+{
+    font-family: Consolas
+}
+
+/********* colors **********/
+.color-main
+{
+    background-color: var(--color-bg1);
+    color: var(--color-text1);
+}
+
+.color-acc1
+{
+    color: var(--color-acc1);
+}
+
+.color-acc2
+{
+    color: var(--color-acc2);
+}
+
+/***** text formatting *****/
+p, li
+{
+    padding-top: 3px;
+    padding-bottom: 3px;
+    line-height: 22px;
+}
+
+.title1
+{
+    background-color: var(--color-bg1);
+    color: var(--color-acc1);
+}
+.title2
+{
+    background-color: var(--color-bg1);
+    color: var(--color-acc2);
+}
+
+.code
+{
+    background-color: var(--color-code-bg);
+    color: var(--color-code-text);
+    border-radius: 4px;
+    padding-left: 4px;
+    padding-right: 4px;
+    padding-top: 2px;
+    padding-bottom: 2px;
+}
+
+a {
+    color: var(--color-acc3);
+}
+
+/********* images **********/
+.img-center
+{
+    text-align: center;
+}
+
+img
+{
+    border: 2px solid var(--color-acc2);
+}
+
+@media only screen and (max-width: 950px)
+{
+    img
+    {
+        width: 100%;
+    }
+}
+
+/****** collapsibles *******/
+.collapsible-button
+{
+    background-color: var(--color-bg2);
+    color: var(--color-acc1);
+    cursor: pointer;
+    padding: 12px;
+    width: 100%;
+    border: none;
+    text-align: left;
+    outline: none;
+    font-size: 16px;
+    font-weight: bold;
+    margin-top: 8px;
+}
+
+.active, .collapsible-button:hover
+{
+    background-color: var(--color-bg3);
+}
+
+.collapsible-button-indicator
+{
+    float: right;
+}
+
+.collapsible-content
+{
+    padding: 0 16px;
+    display: none;
+    overflow: hidden;
+    background-color: var(--color-bg2);
+}

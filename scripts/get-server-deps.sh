@@ -2,7 +2,7 @@
 # Simple script to install Flask and a few dependencies.
 
 # look for pip or pip3
-pip=$(which pip3 2> /dev/null)
+pip="python3 -m pip"
 
 C_ACC="\033[36m"
 C_NONE="\033[0m"

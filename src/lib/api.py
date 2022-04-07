@@ -105,13 +105,6 @@ class API:
                 result.append(c)
         return result
     
-    # ------------------------------- Updates -------------------------------- #
-    # Takes in a transaction object and adds it to the budget class.
-    def add_transaction(self, transaction, bclass):
-        # add the new transaction to the category and mark the class as dirty
-        bclass.add(transaction)
-        bclass.dirty = True
-    
     # Used to search for a transaction given some sort of information about it.
     # Returns a list of transaction objects that matched the text in one way
     # or another. Returns an empty list if no match is found.
@@ -128,7 +121,14 @@ class API:
                     result.append(t)
         # return the resulting list
         return result
-    
+
+    # ------------------------------- Updates -------------------------------- #
+    # Takes in a transaction object and adds it to the budget class.
+    def add_transaction(self, transaction, bclass):
+        # add the new transaction to the category and mark the class as dirty
+        bclass.add(transaction)
+        bclass.dirty = True
+        
     # Takes in a Transaction and a new budget class to assign it to. The
     # transaction is removed from its current class and re-assigned to the
     # new one.

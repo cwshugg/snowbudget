@@ -20,3 +20,9 @@ key_dpath = "/home/ugrads/nonmajors/cwshugg/personal/snowbudget/keys"
 auth_key_fname = "auth_password.key"
 auth_jwt_key_fname = "auth_jwt.key"
 
+# Certifications/OpenSSL globals
+certs_enabled = False
+certs_dpath = "TODO"
+certs_cert_fname = "TODO"
+certs_key_fname = "TODO"
+

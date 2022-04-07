@@ -1,0 +1,253 @@
+/********************************** Globals **********************************/
+:root
+{
+    --color-bg1: rgb(0, 0, 0);
+    --color-bg2: rgb(10, 10, 10);
+    --color-bg3: rgb(150, 150, 150);
+    --color-text1: rgb(225, 225, 255);
+    --color-text2: rgb(255, 173, 50);
+    --font1: "Consolas", "Courier New", Courier, monospace
+}
+
+/********************************** Colors ***********************************/
+.color-bg1
+{
+    background-color: var(--color-bg1);
+}
+
+.color-bg2
+{
+    background-color: var(--color-bg2);
+}
+
+.color-text1
+{
+    color: var(--color-text1);
+}
+
+.color-text2
+{
+    color: var(--color-text2);
+}
+
+/*********************************** Fonts ***********************************/
+.font-main
+{
+    font-family: var(--font1);
+}
+
+/********************************** Buttons **********************************/
+.button-main
+{
+    background-color: var(--color-bg2);
+    color: var(--color-text2);
+    border-color: var(--color-bg3);
+    font-family: var(--font1);
+    font-weight: bold;
+    font-size: 16px;
+    margin: 2px;
+}
+
+.button-toggle
+{
+    background-color: var(--color-bg2);
+    color: var(--color-text2);
+    border-color: var(--color-bg3);
+    font-family: var(--font1);
+    font-weight: bold;
+    padding: 8px;
+    font-size: 16px;
+    margin: 2px;
+}
+
+.button-color
+{
+    background-color: var(--color-bg2);
+    color: var(--color-text2);
+    border-color: var(--color-bg3);
+    font-family: var(--font1);
+    font-weight: bold;
+    padding: 8px;
+    font-size: 16px;
+    margin: 2px;
+    height: 75px;
+}
+
+.button-brightness
+{
+    background-color: var(--color-bg2);
+    color: var(--color-text2);
+    border-color: var(--color-bg3);
+    font-family: var(--font1);
+    font-weight: bold;
+    padding: 8px;
+    font-size: 16px;
+    margin: 2px;
+    height: 75px;
+}
+
+.button-shortcut
+{
+    background-color: var(--color-bg2);
+    color: var(--color-text2);
+    border-color: var(--color-bg3);
+    font-family: var(--font1);
+    font-weight: bold;
+    padding: 8px;
+    font-size: 16px;
+    margin: 2px;
+}
+
+/******************************* Input Fields ********************************/
+.input-text
+{
+    font-size: 16px;
+    margin: 2px;
+}
+
+.input-color
+{
+    width: 150px;
+    height: 75px;
+    margin: 2px;
+    padding: 0;
+    border-color: var(--color-bg3);
+}
+
+.input-slider
+{
+    width: 300px;
+    height: 75px;
+    margin: 2px;
+    margin-left: 8px;
+    padding: 0;
+}
+
+/*********************************** Other ***********************************/
+.div-bordered
+{
+    border: 2px solid var(--color-bg2);
+    margin: 4px;
+    padding: 4px;
+}
+
+.div-button-container
+{
+    margin: 4px;
+    padding: 4px;
+    display: flex;
+    justify-content: flex-start;
+}
+
+.div-button-shortcut-container
+{
+    margin: 4px;
+    padding: 4px;
+    display: flex;
+    justify-content: flex-start;
+}
+
+.h2-button-container
+{
+    margin: 4px;
+    padding: 4px;
+}
+
+.dropdown
+{
+    font-size: 16px;
+    margin: 2px;
+}
+
+/****************************** Mobile Screens *******************************/
+/* https://stackoverflow.com/questions/42025632/how-to-detect-only-with-css-mobile-screens */
+@media only screen and (hover: none) and (pointer: coarse)
+{
+    h1, h2, h3, h4, h5, h6
+    {
+        font-size: 56px;
+    }
+
+    p
+    {
+        font-size: 40px;
+    }
+
+    .button-main
+    {
+        font-size: 48px;
+        margin: 8px;
+    }
+
+    .button-toggle
+    {
+        width: 50%;
+        height: 150px;
+        border-width: 8px;
+        font-size: 48px;
+        margin: 8px;
+    }
+
+    .button-color
+    {
+        width: 100%;
+        height: 150px;
+        border-width: 8px;
+        font-size: 48px;
+        margin: 8px;
+    }
+
+    .button-brightness
+    {
+        width: 100%;
+        height: 150px;
+        border-width: 8px;
+        font-size: 48px;
+        margin: 8px;
+    }
+
+    .button-shortcut
+    {
+        font-size: 48px;
+        margin: 8px;
+        border-width: 8px;
+        width: 100%;
+        height: 150px;
+    }
+
+    .input-text
+    {
+        font-size: 40px;
+        margin: 8px;
+    }
+
+    .input-color
+    {
+        width: 100%;
+        height: 150px;
+        margin: 8px;
+    }
+
+    .input-slider
+    {
+        width: 100%;
+        height: 150px;
+        margin: 8px;
+        border-radius: 16px;
+    }
+
+    .dropdown
+    {
+        font-size: 48px;
+        padding: 8px;
+        margin: 8px;
+    }
+    
+    .div-button-shortcut-container
+    {
+        margin: 4px;
+        padding: 4px;
+        display: block;
+        justify-content: flex-start;
+    }
+}

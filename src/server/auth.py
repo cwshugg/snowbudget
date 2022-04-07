@@ -114,11 +114,12 @@ def auth_make_cookie():
     # get the current datetime and compute an expiration time for the cookie
     now = int(datetime.now().timestamp())
     data = {"iat": now, "exp": now + 2592000}
-    return jwt.encode(data, auth_secret)
+    return jwt.encode(data, auth_secret, algorithm="HS512")
 
 def auth_parse_cookie(cookie):
     global auth_secret
     try:
-        return jwt.decode(cookie, auth_secret)
-    except Exception:
+        return jwt.decode(cookie, auth_secret, algorithms=["HS512"])
+    except Exception as e:
         return None
+

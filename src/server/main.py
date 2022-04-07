@@ -22,7 +22,12 @@ import server.config as config
 def main():
     # initialize any needed functionality then run the flask app
     auth_init()
-    app.run(config.server_addr, port=config.server_port)
+    if config.certs_enabled:
+        app.run(config.server_addr, port=config.server_port,
+                ssl_context=(os.path.join(config.certs_dpath, config.certs_cert_fname),
+                             os.path.join(config.certs_dpath, config_certs_key_fname)))
+    else:
+        app.run(config.server_addr, port=config.server_port)
 
 # Runner code
 if (__name__ == "__main__"):
