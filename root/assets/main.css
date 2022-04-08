@@ -2,10 +2,12 @@
 :root
 {
     --color-bg1: rgb(0, 0, 0);
-    --color-bg2: rgb(10, 10, 10);
-    --color-bg3: rgb(150, 150, 150);
+    --color-bg2: rgb(32, 32, 32);
+    --color-bg3: rgb(48, 48, 48);
     --color-text1: rgb(225, 225, 255);
-    --color-text2: rgb(255, 173, 50);
+    --color-acc1: rgb(153, 217, 234);
+    --color-acc2: rgb(104, 133, 232);
+    --color-acc3: rgb(0, 190, 225);
     --font1: "Consolas", "Courier New", Courier, monospace
 }
 
@@ -25,9 +27,19 @@
     color: var(--color-text1);
 }
 
-.color-text2
+.color-acc1
 {
-    color: var(--color-text2);
+    color: var(--color-acc1);
+}
+
+.color-acc2
+{
+    color: var(--color-acc2);
+}
+
+.color-acc3
+{
+    color: var(--color-acc3);
 }
 
 /*********************************** Fonts ***********************************/
@@ -105,58 +117,40 @@
     margin: 2px;
 }
 
-.input-color
-{
-    width: 150px;
-    height: 75px;
-    margin: 2px;
-    padding: 0;
-    border-color: var(--color-bg3);
-}
 
-.input-slider
+/******************************* Collapsibles ********************************/
+.collapsible-button
 {
-    width: 300px;
-    height: 75px;
-    margin: 2px;
-    margin-left: 8px;
-    padding: 0;
-}
-
-/*********************************** Other ***********************************/
-.div-bordered
-{
-    border: 2px solid var(--color-bg2);
-    margin: 4px;
-    padding: 4px;
-}
-
-.div-button-container
-{
-    margin: 4px;
-    padding: 4px;
-    display: flex;
-    justify-content: flex-start;
-}
-
-.div-button-shortcut-container
-{
-    margin: 4px;
-    padding: 4px;
-    display: flex;
-    justify-content: flex-start;
-}
-
-.h2-button-container
-{
-    margin: 4px;
-    padding: 4px;
-}
-
-.dropdown
-{
+    background-color: var(--color-bg2);
+    color: var(--color-acc1);
+    cursor: pointer;
+    padding: 12px;
+    width: 100%;
+    border: none;
+    text-align: left;
+    outline: none;
     font-size: 16px;
-    margin: 2px;
+    font-weight: bold;
+    margin-top: 8px;
+}
+
+.active, .collapsible-button:hover
+{
+    background-color: var(--color-bg3);
+}
+
+.collapsible-button-indicator
+{
+    float: right;
+}
+
+.collapsible-content
+{
+    padding: 0 16px;
+    display: none;
+    overflow: hidden;
+    background-color: var(--color-bg2);
+    font-size: 16px;
 }
 
 /****************************** Mobile Screens *******************************/
@@ -249,5 +243,19 @@
         padding: 4px;
         display: block;
         justify-content: flex-start;
+    }
+    
+    .collapsible-button
+    {
+        padding: 32px;
+        width: 100%;
+        font-size: 48px;
+        margin-top: 16px;
+    }
+    
+    .collapsible-content
+    {
+        padding: 0 32px;
+        font-size: 40px;
     }
 }

@@ -25,7 +25,7 @@ def main():
     if config.certs_enabled:
         app.run(config.server_addr, port=config.server_port,
                 ssl_context=(os.path.join(config.certs_dpath, config.certs_cert_fname),
-                             os.path.join(config.certs_dpath, config_certs_key_fname)))
+                             os.path.join(config.certs_dpath, config.certs_key_fname)))
     else:
         app.run(config.server_addr, port=config.server_port)
 

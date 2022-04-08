@@ -81,6 +81,7 @@ def auth_check_cookie(cookie):
     cookies = cookie.split(";")
     result = None
     for c in cookies:
+        c = c.strip()
         # attempt to separate out the cookie value and decode it
         pieces = c.split("=")
         # check the cookie name - if this is the one we want, break out of the
@@ -100,9 +101,8 @@ def auth_check_cookie(cookie):
     if result["iat"] > now:
         return False
     # check the expiration time for the token
-    if result["exp"] < now:
+    if result["exp"] <= now:
         return False
-    
     # if we passed all the above checks, they must be authenticated
     return True
 
@@ -114,7 +114,8 @@ def auth_make_cookie():
     # get the current datetime and compute an expiration time for the cookie
     now = int(datetime.now().timestamp())
     data = {"iat": now, "exp": now + 2592000}
-    return jwt.encode(data, auth_secret, algorithm="HS512")
+    token = jwt.encode(data, auth_secret, algorithm="HS512").decode("utf-8")
+    return token
 
 def auth_parse_cookie(cookie):
     global auth_secret

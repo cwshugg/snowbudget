@@ -92,6 +92,11 @@ def get_request_json(request):
 def is_authenticated(request):
     return auth_check_cookie(request.headers.get("Cookie"))
 
+# Takes in a file path local to the server's root directory and appends it to
+# the path tot he root directory before passing it into send_file()
+def serve_file(fpath):
+    return send_from_directory(config.server_root_dpath, fpath, etag=False)
+
 
 # ==================== Root and Authentication Endpoints ===================== #
 # Defines the behavior of the root '/' endpoint. Returns a simple status/hello
@@ -101,20 +106,26 @@ def endpoint_root():
     # if the user is authenticated, we'll serve them the authenticated home
     # page. If not, we'll serve them the public one
     if is_authenticated(request):
-        return send_from_directory(config.server_root_dpath, config.server_home_auth_fname)
-    return send_from_directory(config.server_root_dpath, config.server_home_fname)
+        return serve_file(config.server_home_auth_fname)
+    return serve_file(config.server_home_fname)
 
 # Static file handling.
 @app.route("/<path:fpath>")
 def endpoint_static_file(fpath):
+    is_auth = is_authenticated(request)
+    # special case: if index.html was requested, check authentication and
+    # replace it with the authenticated version
+    if fpath == config.server_home_fname and is_auth:
+        fpath = config.server_home_auth_fname
+
     # if the path is one of our public files, serve it without question
     if fpath in config.server_public_files:
-        return send_from_directory(config.server_root_dpath, fpath)
+        return serve_file(fpath)
 
     # otherwise, check authentication before serving the file
-    if not is_authenticated(request):
+    if not is_auth:
         return make_response_json(rstatus=404)
-    return send_from_directory(config.server_root_dpath, fpath)
+    return serve_file(fpath)
 
 # Used to attempt a login.
 @app.route("/auth/login", methods=["POST"])
