@@ -10,6 +10,7 @@ import os
 import argparse
 import json
 from datetime import datetime
+import shutil
 
 # Enable import from the parent directory
 dpath = os.path.dirname(os.path.realpath(__file__)) # directory of this file
@@ -214,6 +215,9 @@ def parse_args():
     p.add_argument("--list",
                    help="Prints a full listing of all budget classes and transactions.",
                    default=False, action="store_true")
+    p.add_argument("--backup", metavar="BACKUP_DIR",
+                   help="Copies the current configuration file and all associated files to the specified location.",
+                   default=None, nargs=1, type=str)
     # adding options
     p.add_argument("--add-class",
                    help="Add a new budget class.",
@@ -531,7 +535,39 @@ def edit_transaction():
     # otherwise, print all updates
     for u in updates:
         success(u)
-    
+
+
+# ============================== Backup/File IO ============================== #
+# Takes in a directory path and copies the given configuration file and all
+# associated files to the given backup path. If the directory needs to be
+# created, it is done within this function.
+def backup_budget(bpath):
+    # make sure the given path isn't to a file
+    if os.path.isfile(bpath):
+        exit(msg="The given backup path points to a file, not a directory.")
+
+    # if the path isn't a directory, we'll create it now
+    if not os.path.isdir(bpath):
+        os.mkdir(bpath)
+
+    # take a quick glance inside the directory. If there are files and dirs
+    # stored within, we don't want to risk overwriting anything.
+    for root, dirs, files in os.walk(bpath):
+        if len(dirs) > 0 or len(files) > 0:
+            exit(msg="The given backup path already contains files. "
+                        "Please choose another.")
+
+    # finally, we're ready to copy files over. We'll start by copying over the
+    # configuration file
+    shutil.copyfile(config.fpath, os.path.join(bpath, "config.json"))
+
+    # now, we'll copy every file within the budget's save directory into the
+    # backup directory
+    shutil.copytree(config.save_location, os.path.join(bpath, "budget"))
+    success("Successfully copied budget.")
+
+
+# ============================ Main Functionality ============================ #
 # Main function.
 def main():
     # parse the arguments, then parse the config file
@@ -557,6 +593,11 @@ def main():
     # if '--list' was given, we'll write out a full list
     if "list" in args and args["list"]:
         list_all()
+        exit()
+    
+    # if a backup path was given, we'll try to copy all files
+    if "backup" in args and args["backup"] != None:
+        backup_budget(args["backup"][0])
         exit()
 
     # if '--add-class' was given, we'll try to add, then exit
