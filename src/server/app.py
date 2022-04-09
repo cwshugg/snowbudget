@@ -13,6 +13,7 @@ import csv
 import json
 import os
 import sys
+from datetime import datetime
 
 # Enable import from the parent directory
 dpath = os.path.dirname(os.path.realpath(__file__)) # directory of this file
@@ -21,19 +22,25 @@ if dpath not in sys.path:                           # add to path
         sys.path.append(dpath)
 
 # Local imports
-from server.backend import backend_get_api
 from server.auth import auth_check_login, auth_make_cookie, auth_check_cookie, \
                         auth_cookie_name
 import server.config as config
+from lib.config import Config
+from lib.budget import Budget
+from lib.bclass import BudgetClass, BudgetClassType
 from lib.transaction import Transaction
 
 # Flask setup
 app = Flask(__name__)
 
-# Globals
-api = backend_get_api()
 
 # ============================= Helper Functions ============================= #
+# Used to retrieve a fresh Budget object from the configuration path stored in
+# the server's config module.
+def get_budget():
+    conf = Config(config.sb_config_fpath)
+    return Budget(conf)
+
 # Takes a dictionary of data and adds an optional message to it, then packs it
 # all into a Flask Response object.
 def make_response_json(jdata={}, msg="", success=True, rstatus=200, rheaders={}):
@@ -156,50 +163,65 @@ def endpoint_auth_check():
         return make_response_json(msg="You are not authenticated.")
 
 
-# ================================= Getters ================================== #
+# ================================ Retrieval ================================= #
 # Used to retrieve ALL budget classes.
 @app.route("/get/all", methods = ["GET"])
-def endpoint_bclass_all():
+def endpoint_get_all():
     if not is_authenticated(request):
         return make_response_json(rstatus=404)
 
     # invoke the API to retrieve *all* budget classes as a combined JSON object
-    classes = api.to_json()
+    b = get_budget()
+    classes = b.to_json()
     return make_response_json(jdata=classes)
 
-# Used to retrieve a budget class.
+# Helper function for the /get methods that takes in the ID field to expect in
+# the JSON request body.
+def get_helper(field):
+    if not is_authenticated(request):
+        return make_response_json(rstatus=404)
+
+    # extract the json data in the request body
+    jdata = get_request_json(request)
+    if type(jdata) == Exception:
+        return make_response_json(rstatus=400, msg="Failed to parse request body.")
+    elif jdata == None:
+        return make_response_json(rstatus=400, msg="Missing request body.")
+
+    # make sure the correct entry is present in the JSON field
+    expect = [[field, str]]
+    if not check_json_fields(jdata, expect):
+        return make_response_json(success=False, msg="Missing JSON fields.")
+    
+    # invoke the API to search for a matching class 
+    b = get_budget()
+    result = None
+    if field == "class_id":
+        result = b.get_class(jdata[field])
+    elif field == "transaction_id":
+        result = b.get_transaction(jdata[field])
+
+    # if the search failed, return a message. Otherwise, convert the object to
+    # JSON and return it
+    if result == None:
+        return make_response_json(success=False, msg="Couldn't find a match.")
+    return make_response_json(jdata=result.to_json())
+
+# Used to retrieve a budget class. Expects a class ID.
 @app.route("/get/class", methods = ["GET"])
-def endpoint_bclass_get():
-    if not is_authenticated(request):
-        return make_response_json(rstatus=404)
+def endpoint_get_class():
+    return get_helper("class_id")
 
-    # extract the json data in the request body
-    jdata = get_request_json(request)
-    if type(jdata) == Exception:
-        return make_response_json(rstatus=400, msg="Failed to parse request body.")
-    elif jdata == None:
-        return make_response_json(rstatus=400, msg="Missing request body.")
-
-    # make sure the correct entry is present in the JSON field
-    expect = [["query", str]]
-    if not check_json_fields(jdata, expect):
-        return make_response_json(success=False, msg="Missing JSON fields.")
-    
-    # invoke the API to search for a matching class
-    matches = api.find_class(jdata["query"])
-    if len(matches) == 0:
-        return make_response_json(success=False,
-                                  msg="Couldn't find any matching classes.")
-    
-    # build a JSON array with our array of class objects
-    jarray = []
-    for bc in matches:
-        jarray.append(bc.to_json())
-    return make_response_json(jdata=jarray)
-
-# Used to retrieve a transaction.
+# Used to retrieve a transaction. Expects a transaction ID.
 @app.route("/get/transaction", methods = ["GET"])
-def endpoint_transaction_get():
+def endpoint_get_transaction():
+    return get_helper("transaction_id")
+
+
+# ================================== Search ================================== #
+# Helper function used for the searcher endpoints. Takes in the 'mode' to
+# search on ("class" or "transaction")
+def search_helper(mode):
     if not is_authenticated(request):
         return make_response_json(rstatus=404)
 
@@ -209,29 +231,93 @@ def endpoint_transaction_get():
         return make_response_json(rstatus=400, msg="Failed to parse request body.")
     elif jdata == None:
         return make_response_json(rstatus=400, msg="Missing request body.")
-    
+
     # make sure the correct entry is present in the JSON field
     expect = [["query", str]]
     if not check_json_fields(jdata, expect):
         return make_response_json(success=False, msg="Missing JSON fields.")
+    
+    # invoke the budget API to search for classes
+    b = get_budget()
+    matches = []
+    mode = mode.lower()
+    if mode == "class":
+        matches = b.search_class(jdata["query"])
+    elif mode == "transaction":
+        matches = b.search_transaction(jdata["query"])
 
-    # invoke the API to search for a matching transaction
-    matches = api.find_transaction(jdata["query"])
+    # if the search failed, return an appropriate message
     if len(matches) == 0:
         return make_response_json(success=False,
-                                  msg="Couldn't find any matching transactions.")
-    
-    # build a JSON array with our array of matching transactions
+                                  msg="Couldn't find any matches.")
+
+    # build a JSON array of all matches
     jarray = []
-    for bc in matches:
-        jarray.append(bc.to_json())
+    for c in matches:
+        jarray.append(c.to_json())
     return make_response_json(jdata=jarray)
+   
+# Takes in some string as input and uses it to search for matching budget
+# classes.
+@app.route("/search/class", methods = ["POST"])
+def endpoint_search_class():
+    return search_helper("class")
+
+# Takes in some string as input and uses it to search for matching transactions.
+@app.route("/search/transaction", methods = ["POST"])
+def endpoint_search_transaction():
+    return search_helper("transaction")
 
 
-# ================================= Updates ================================== #
+# ================================= Creation ================================= #
+# Used to create a new budget class.
+@app.route("/create/class", methods = ["POST"])
+def endpoint_create_class():
+    if not is_authenticated(request):
+        return make_response_json(rstatus=404)
+
+    # extract the json data in the request body
+    jdata = get_request_json(request)
+    if type(jdata) == Exception:
+        return make_response_json(rstatus=400, msg="Failed to parse request body.")
+    elif jdata == None:
+        return make_response_json(rstatus=400, msg="Missing request body.")
+
+    # we're expecting information on the new budget class - check it here
+    expect = [["name", str], ["type", str], ["description", str],
+              ["keywords", list]]
+    if not check_json_fields(jdata, expect):
+        return make_response_json(success=False, msg="Missing JSON fields.")
+
+    # attempt to parse the type string into an enum
+    tstr = jdata["type"].lower()
+    ctype = None
+    if tstr in ["e", "expense", "expenses"]:
+        ctype = BudgetClassType.EXPENSE
+    elif tstr in ["i", "income"]:
+        ctype = BudgetClassType.INCOME
+    else:
+        return make_response_json(success=False, msg="Invalid JSON fields.")
+
+    # from the keyword list, convert to a list of strings (just in case the
+    # sender sent a list of not-strings)
+    kws = []
+    for w in jdata["keywords"]:
+        kws.append(str(w))
+    
+    # create a new budget class object and attempt to add it to the budget
+    bclass = BudgetClass(jdata["name"], ctype, jdata["description"], keywords=kws)
+    b = get_budget()
+    try:
+        b.add_class(bclass)
+        return make_response_json(msg="Class created.", jdata=bclass.to_json())
+    except Exception as e:
+        return make_response_json(success=False,
+                                  msg="Failed to create the class: %s" % e)
+
 # Used to create a new transaction.
 @app.route("/create/transaction", methods = ["POST"])
-def endpoint_transaction_create():
+def endpoint_create_transaction():
     if not is_authenticated(request):
         return make_response_json(rstatus=404)
 
@@ -244,27 +330,35 @@ def endpoint_transaction_create():
 
     # we're expecting a class ID *and* other fields within the JSON data
     expect = [["class_id", str], ["price", float], ["vendor", str],
-              ["description", str]]
+              ["description", str], ["timestamp", int]]
     if not check_json_fields(jdata, expect):
         return make_response_json(success=False, msg="Missing JSON fields.")
 
-    # first, search for the class, given its ID 
-    matches = api.find_class(jdata["class_id"])
-    if len(matches) == 0:
+    # first, search for the class, given its ID (make a shallow copy)
+    b = get_budget()
+    bclass = b.get_class(jdata["class_id"])
+    if bclass == None:
         return make_response_json(success=False,
-                                  msg="Couldn't find any matching classes.")
-    bc = matches[0] # grab first one (should only be one)
+                                  msg="Couldn't find the specified class.")
+
+    # try to convert the given timestamp integer into a datetime object
+    ts = None
+    try:
+        ts = datetime.fromtimestamp(jdata["timestamp"])
+    except Exception as e:
+        raise e
+        return make_response_json(success=False, msg="Invalid JSON fields.")
 
     # create a transaction struct and pass it to the API
     t = Transaction(jdata["price"], vendor=jdata["vendor"],
-                    description=jdata["description"])
-    api.add_transaction(t, bc)
-    api.save()
+                    description=jdata["description"], timestamp=ts)
+    b.add_transaction(bclass, t)
     return make_response_json(msg="Transaction created.", jdata=t.to_json())
 
-# Used to delete a transaction.
-@app.route("/delete/transaction", methods = ["POST"])
-def endpoint_transaction_delete():
+
+# ================================= Deletion ================================= #
+# Helper function for the two delete endpoints.
+def delete_helper(field):
     if not is_authenticated(request):
         return make_response_json(rstatus=404)
 
@@ -275,26 +369,120 @@ def endpoint_transaction_delete():
     elif jdata == None:
         return make_response_json(rstatus=400, msg="Missing request body.")
 
-    # we're expecting a transaction ID
-    expect = [["transaction_id", str]]
+    # pass in the field as the expected ID
+    expect = [[field, str]]
     if not check_json_fields(jdata, expect):
         return make_response_json(success=False, msg="Missing JSON fields.")
     
-    # retrieve the corresponding transaction object
-    matches = api.find_transaction(jdata["transaction_id"])
-    if len(matches) == 0:
+    # search for the corresponding object with the given ID
+    b = get_budget()
+    result = None
+    if field == "class_id":
+        result = b.get_class(jdata[field])
+    elif field == "transaction_id":
+        result = b.get_transaction(jdata[field])
+
+    # if the search failed, return a message
+    if result == None:
         return make_response_json(success=False,
-                                  msg="Couldn't find any matching transactions.")
+                                  msg="Couldn't find a match.")
     
-    # delete the transaction, then save
-    succ = api.delete_transaction(matches[0])
-    api.save()
-    msg = "Transaction deleted." if succ else "Failed to delete the transaction."
-    return make_response_json(success=succ, msg=msg)
+    # attempt to delete the object
+    if field == "class_id":
+        b.delete_class(result)
+    elif field == "transaction_id":
+        b.delete_transaction(result)
+    
+    # return an appropriate message
+    msg = "Deleted."
+    if field == "class_id":
+        msg = "Class deleted."
+    elif field == "transaction_id":
+        msg = "Transaction deleted."
+    return make_response_json(msg=msg)
+
+# Used to delete a class.
+@app.route("/delete/class", methods = ["POST"])
+def endpoint_delete_class():
+    return delete_helper("class_id")
+
+# Used to delete a transaction.
+@app.route("/delete/transaction", methods = ["POST"])
+def endpoint_delete_transaction():
+    return delete_helper("transaction_id")
+
+
+# ================================= Updates ================================== #
+# Used to edit an existing budget class.
+@app.route("/edit/class", methods = ["POST"])
+def endpoint_edit_class():
+    if not is_authenticated(request):
+        return make_response_json(rstatus=404)
+
+    # extract the json data in the request body
+    jdata = get_request_json(request)
+    if type(jdata) == Exception:
+        return make_response_json(rstatus=400, msg="Failed to parse request body.")
+    elif jdata == None:
+        return make_response_json(rstatus=400, msg="Missing request body.")
+
+    # we're expecting a class ID
+    expect = [["class_id", str]]
+    if not check_json_fields(jdata, expect):
+        return make_response_json(success=False, msg="Missing JSON fields.")
+
+    # search for the transaction
+    b = get_budget()
+    bc = b.get_class(jdata["class_id"]).copy()
+    if bc == None:
+        return make_response_json(success=False,
+                                  msg="Couldn't find a matching class.")
+
+    # we'll look for the following fields in the JSON data to use as updates
+    expect = [["name", str], ["type", str], ["description", str],
+              ["keywords", list]]
+    for e in expect:
+        if e[0] in jdata and type(jdata[e[0]]) != e[1]:
+            return make_response_json(success=False, msg="Invalid JSON fields.")
+   
+    changes = 0
+    # attempt to parse the type string into an enum, if applicable
+    if "type" in jdata:
+        tstr = jdata["type"].lower()
+        if tstr in ["e", "expense", "expenses"]:
+            bc.ctype = BudgetClassType.EXPENSE
+        elif tstr in ["i", "income"]:
+            bc.ctype = BudgetClassType.INCOME
+        else:
+            return make_response_json(success=False, msg="Invalid JSON fields.")
+        changes += 1
+   
+    # parse the keywords as a list of strings
+    if "keywords" in jdata:
+        kws = []
+        for w in jdata["keywords"]:
+            kws.append(str(w))
+        bc.keywords = kws
+        changes += 1
+
+    # if the name is present, update the name
+    if "name" in jdata:
+        bc.name = jdata["name"]
+        changes += 1
+    # update the description, if present
+    if "description" in jdata:
+        bc.desc = jdata["description"]
+        changes += 1
+    
+    # tally up the changes, save if necessary, and send back a response
+    if changes > 0:
+        b.update_class(bc)
+        return make_response_json(msg="Made %d changes." % changes)
+    return make_response_json(msg="Made no changes.")
 
 # Used to edit an existing transaction.
 @app.route("/edit/transaction", methods = ["POST"])
-def endpoint_transaction_edit():
+def endpoint_edit_transaction():
     if not is_authenticated(request):
         return make_response_json(rstatus=404)
 
@@ -311,23 +499,24 @@ def endpoint_transaction_edit():
         return make_response_json(success=False, msg="Missing JSON fields.")
 
     # search for the transaction
-    matches = api.find_transaction(jdata["transaction_id"])
-    if len(matches) == 0:
+    b = get_budget()
+    t = b.get_transaction(jdata["transaction_id"])
+    if t == None:
         return make_response_json(success=False,
-                                  msg="Couldn't find any matching transactions.")
-    t = matches[0]
+                                  msg="Couldn't find a matching transaction.")
 
     # if the user specified a class ID, we'll move the transaction to the
     # corresponding class
     bc = None
-    if "class_id" in jdata and type(jdata["class_id"]) == str:
+    if "class_id" in jdata:
+        # make sure the class ID is the correct type in the JSON
+        if type(jdata["class_id"]) != str:
+            return make_response_json(success=False, msg="Invalid JSON fields.")
         # locate the class based on the class ID
-        matches = api.find_class(jdata["class_id"])
-        if len(matches) == 0:
+        bc = b.get_class(jdata["class_id"])
+        if bc == None:
             return make_response_json(success=False,
                                       msg="Couldn't find any matching classes.")
-        bc = matches[0]
-
     
     # check to make sure the types of any present fields are correct
     changes = 0
@@ -336,7 +525,7 @@ def endpoint_transaction_edit():
         key = e[0]
         if key in jdata:
             if type(jdata[key]) != e[1]:
-                return make_response_json(success=False, msg="Invalid request body.")
+                return make_response_json(success=False, msg="Invalid JSON fields.")
         else:
             jdata[key] = None
     
@@ -350,15 +539,15 @@ def endpoint_transaction_edit():
     if jdata["description"] != None:
         t.desc = jdata["description"]
         changes += 1
-
-    # move groups if necessary
     if bc != None:
-        changes += int(api.move_transaction(t, bc))
+        changes += 1
 
-    # save and/or respond with the appropriate message
+    # delete the transaction then re-add it to the correct class to force the
+    # update
     if changes > 0:
-        api.save()
+        bc = t.owner if bc == None else bc
+        b.delete_transaction(t)
+        b.add_transaction(bc, t)
         return make_response_json(msg="Made %d changes." % changes)
-    else:
-        return make_response_json(msg="Made no changes.")
+    return make_response_json(msg="Made no changes.")
 

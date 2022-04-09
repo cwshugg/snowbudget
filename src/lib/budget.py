@@ -45,7 +45,7 @@ class Budget:
     def add_class(self, bclass):
         # before appending to the array, make sure there are no name conflicts
         for bc in self.classes:
-            assert bc.name.lower() != bclass.name.lower(), \
+            assert bclass.name.lower() != bc.name.lower(), \
                    "duplicate budget class name detected"
         self.classes.append(bclass)
 

@@ -19,5 +19,6 @@ if [ ! -d ${ipath} ]; then
 fi
 
 # now, create symbolic links
-ln -s ${fullpath}/src/cli/main.py ${ipath}/sb
+ln -sf ${fullpath}/src/cli/main.py ${ipath}/sb
+ln -sf ${fullpath}/src/server/main.py ${ipath}/sbserv
 
