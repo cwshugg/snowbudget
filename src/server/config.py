@@ -21,7 +21,7 @@ auth_key_fname = "auth_password.key"
 auth_jwt_key_fname = "auth_jwt.key"
 
 # Certifications/OpenSSL globals
-certs_enabled = False
+certs_enabled = True
 certs_dpath = "/etc/letsencrypt/live/beacon.shugg.dev/"
 certs_cert_fname = "fullchain.pem"
 certs_key_fname = "privkey.pem"
