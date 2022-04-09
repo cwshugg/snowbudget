@@ -144,14 +144,14 @@ def input_date(prompt="Timestamp:", blank_ok=False):
 def input_class_type(prompt="Class type:", blank_ok=False):
     while True:
         text = input_wrapper(prompt, blank_ok=blank_ok)
-        if blank_ok and text == None:
+        if blank_ok and text == "":
             return None
         text = text.strip().lower()
 
         # return based on what was given
-        if text in ["e", "expense", "expenses"]:
+        if text in "expenses":
             return BudgetClassType.EXPENSE
-        elif text in ["i", "income"]:
+        elif text in "income":
             return BudgetClassType.INCOME
         # otherwise, print and continue
         print("Please enter either \"expense\" or \"income\".")
