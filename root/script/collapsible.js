@@ -3,12 +3,11 @@
 //
 //      Connor Shugg
 
-// grab all buttons with the correct class, then iterate through them
-let buttons = document.getElementsByClassName("collapsible-button");
-for (let i = 0; i < buttons.length; i++)
+// Takes in a collapsible-button object and initializes it.
+function collapsible_init(cbutton)
 {
     // add a 'click' listener that does the work
-    buttons[i].addEventListener("click", function()
+    cbutton.addEventListener("click", function()
     {
         this.classList.toggle("active");        // make the button 'active'
         let content = this.nextElementSibling;  // get content div
@@ -39,3 +38,4 @@ for (let i = 0; i < buttons.length; i++)
         }
     });
 }
+

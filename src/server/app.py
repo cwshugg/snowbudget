@@ -208,12 +208,12 @@ def get_helper(field):
     return make_response_json(jdata=result.to_json())
 
 # Used to retrieve a budget class. Expects a class ID.
-@app.route("/get/class", methods = ["GET"])
+@app.route("/get/class", methods = ["POST"])
 def endpoint_get_class():
     return get_helper("class_id")
 
 # Used to retrieve a transaction. Expects a transaction ID.
-@app.route("/get/transaction", methods = ["GET"])
+@app.route("/get/transaction", methods = ["POST"])
 def endpoint_get_transaction():
     return get_helper("transaction_id")
 
