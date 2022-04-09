@@ -1,5 +1,6 @@
 {
     "name": "Monthly Budget",
+    "save_location": "/home/snowmiser/snowbudget-save",
     "classes":
     [
         {
@@ -86,6 +87,5 @@
             "keywords": ["uncategorized", "default", "income"],
             "default": true
         }
-    ],
-    "save_location": "/home/snowmiser/snowbudget-save"
+    ]
 }

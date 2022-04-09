@@ -48,7 +48,7 @@ class Transaction:
     def to_dollar_string(self):
         return "$%.2f" % self.price
 
-    # ----------------------------- JSON Helpers ----------------------------- #
+    # --------------------------------- JSON --------------------------------- #
     # Used to convert this object into a JSON object.
     def to_json(self):
         jdata = {
@@ -82,18 +82,18 @@ class Transaction:
                         description=jdata["description"], timestamp=ts,
                         tid=jdata["id"])
         return t
-
+    
     # ------------------------------ Operations ------------------------------ #
+    # Takes in a transaction ID and returns true if this object's ID matches.
+    def match_id(self, tid):
+        return self.tid == tid
+    
     # Attempts to match this transaction based on information given. Returns
     # True if a match is detected and False otherwise. Primarily checks the ID
     # of the transaction, then checks other fields.
     def match(self, text):
         text = text.lower()
-        # first, check against the ID
-        if text == self.tid:
-            return True
-        
-        # otherwise we'll check other fields (start with timestamp)
+        # check the timestamp
         try:
             if int(text) == int(self.timestamp.timestamp()):
                 return True
@@ -101,11 +101,8 @@ class Transaction:
             pass
 
         # check price
-        try:
-            if float(text) == self.price:
-                return True
-        except Exception as e:
-            pass
+        if text in str(self.price):
+            return True
 
         # check description
         if text in self.desc.lower():

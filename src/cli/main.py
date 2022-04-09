@@ -1,6 +1,6 @@
 #!/usr/bin/python3
-# This module implements a command-line interface for interacting with the API
-# to add/remove/view transactions.
+# This module implements a command-line interface for interacting with the Budget
+# API to add/remove/view transactions.
 #
 #   Connor Shugg
 
@@ -9,6 +9,7 @@ import sys
 import os
 import argparse
 import json
+from datetime import datetime
 
 # Enable import from the parent directory
 dpath = os.path.dirname(os.path.realpath(__file__)) # directory of this file
@@ -18,13 +19,13 @@ if dpath not in sys.path:                           # add to path
 
 # Local imports
 from lib.config import Config
-from lib.api import API
-from lib.bclass import BudgetClassType
+from lib.budget import Budget
+from lib.bclass import BudgetClass, BudgetClassType
 from lib.transaction import Transaction
 
 # Globals
 config = None
-api = None
+budget = None
 
 # Pretty-printing globals
 STAB = "    "
@@ -49,6 +50,16 @@ def fatality(msg=None, exception=None):
     sys.stderr.write(message + "\n")
     sys.exit(1)
 
+# Prints a success message.
+def success(msg):
+    print("%s%s%s" % (C_GREEN, msg, C_RED))
+
+# Exits, optionally printing a message.
+def exit(msg=None):
+    if msg != None:
+        sys.stderr.write("%s\n" % msg)
+    sys.exit(0)
+
 # Used when detecting SIGINTs and EOFs.
 def abrupt_exit():
     sys.stdout.write("\n")
@@ -60,7 +71,6 @@ def dollar_to_string(value):
     if value < 0.0:
         return "-$%.2f" % abs(value)
     return "$%.2f" % value
-
 
 # ============================== Input Reading =============================== #
 # Takes a prompt and gets a string input from the user. By default, blanks are
@@ -89,25 +99,6 @@ def input_price(prompt="Price:", blank_ok=False):
         except Exception as e:
             print("Please enter a price.")
 
-# Reads from stdin to get a budget class from the user. If a match isn't found
-# then None is returned. Otherwise, the BudgetClass object is returned.
-def input_budget_class(prompt="[SEARCH] Budget class:"):
-    while True:
-        bcname = input_wrapper(prompt, color=C_CYAN).strip()
-        classes = api.find_class(bcname)
-        clen = len(classes)
-        # if nothing was found, say so and loop again
-        if clen == 0:
-            print("Couldn't find anything.")
-            continue
-
-        # otherwise we'll have the user pick one out
-        print("Found %d budget classes. Please choose one:" % clen)
-        for i in range(clen):
-            print("%d. %s" % ((i + 1), classes[i]))
-        idx = input_number("Class number:", upper=clen, lower=1) - 1
-        return classes[idx]
-
 # Asks the user a yes/no question.
 def input_boolean(prompt):
     while True:
@@ -119,10 +110,10 @@ def input_boolean(prompt):
         print("Please enter y/yes or n/no.")
 
 # Prompts the user for an integer, enforcing an optional upper/lower bound.
-def input_number(prompt, upper=None, lower=None):
+def input_number(prompt, upper=None, lower=None, color=C_YELLOW):
     has_bound = lower != None and upper != None
     while True:
-        val = input_wrapper(prompt).strip()
+        val = input_wrapper(prompt, color=color).strip()
         try:
             # try to convert to an integer and assert it's in range
             val = int(val)
@@ -132,18 +123,65 @@ def input_number(prompt, upper=None, lower=None):
             print("Please enter a number%s." %
                   (" between %d and %d" % (lower, upper) if has_bound else ""))
 
+# Prompts the user for a date string. Returns a datetime object.
+def input_date(prompt="Timestamp:", blank_ok=False):
+    while True:
+        text = input_wrapper(prompt, blank_ok=blank_ok)
+        if blank_ok and text == None:
+            return None
+        
+        # attempt to parse as YYYY-MM-DD
+        try:
+            dt = datetime.strptime(text, "%Y-%m-%d")
+            return dt
+        except Exception as e:
+            print("Please enter a date in this format: YYYY-MM-DD")
+            continue
+
+# Takes in either "e"/"expense" or "i"/"income" and returns a BudgetClassType
+# object depending on what was entered.
+def input_class_type(prompt="Class type:", blank_ok=False):
+    while True:
+        text = input_wrapper(prompt, blank_ok=blank_ok)
+        if blank_ok and text == None:
+            return None
+        text = text.strip().lower()
+
+        # return based on what was given
+        if text in ["e", "expense", "expenses"]:
+            return BudgetClassType.EXPENSE
+        elif text in ["i", "income"]:
+            return BudgetClassType.INCOME
+        # otherwise, print and continue
+        print("Please enter either \"expense\" or \"income\".")
+
+# Reads from stdin to get a budget class from the user. If a match isn't found
+# then None is returned. Otherwise, the BudgetClass object is returned.
+def input_class(prompt="[SEARCH] Budget class:"):
+    while True:
+        text = input_wrapper(prompt, color=C_CYAN).strip()
+        classes = budget.search_class(text)
+        clen = len(classes)
+        # if nothing was found, say so and loop again
+        if clen == 0:
+            print("Couldn't find anything.")
+            continue
+
+        # otherwise we'll have the user pick one out
+        print("Found %d budget classes. Please choose one:" % clen)
+        for i in range(clen):
+            print("%d. %s" % ((i + 1), classes[i]))
+        idx = input_number("Class number:", upper=clen, lower=1, color=C_CYAN) - 1
+        return classes[idx]
+
 # Reads user input to get a specific transaction.
 def input_transaction(prompt="[SEARCH] Transaction:"):
     while True:
         # prompt the user to supply some sort of text to search for a transaction
         text = input_wrapper(prompt, color=C_CYAN)
-        if text == None:
-            sys.stderr.write("You didn't enter any text.\n")
-            sys.exit(1)
-    
-        # now, invoke the API to search for a transaction loop back around if
+        # now, invoke the Budget to search for a transaction loop back around if
         # nothing was found
-        ts = api.find_transaction(text)
+        ts = budget.search_transaction(text)
         tlen = len(ts)
         if tlen == 0:
             print("Couldn't find anything.")
@@ -153,7 +191,7 @@ def input_transaction(prompt="[SEARCH] Transaction:"):
         print("Found %d transactions. Please choose one:" % tlen)
         for i in range(tlen):
             print("%d. %s" % ((i + 1), ts[i]))
-        idx = input_number("Transaction number:", upper=tlen, lower=1) - 1
+        idx = input_number("Transaction number:", upper=tlen, lower=1, color=C_CYAN) - 1
         return ts[idx]
 
 
@@ -173,26 +211,37 @@ def parse_args():
     p.add_argument("--json",
                    help="Prints a JSON representation of all budget classes.",
                    default=False, action="store_true")
-    p.add_argument("--add",
+    p.add_argument("--list",
+                   help="Prints a full listing of all budget classes and transactions.",
+                   default=False, action="store_true")
+    # adding options
+    p.add_argument("--add-class",
+                   help="Add a new budget class.",
+                   default=False, action="store_true")
+    p.add_argument("--add-transaction",
                    help="Add a new transaction.",
                    default=False, action="store_true")
-    p.add_argument("--remove",
+    # removal options
+    p.add_argument("--delete-class",
+                   help="Remove an existing budget class.",
+                   default=False, action="store_true")
+    p.add_argument("--delete-transaction",
                    help="Remove an existing transaction.",
                    default=False, action="store_true")
-    p.add_argument("--edit",
+    # edit options
+    p.add_argument("--edit-class",
+                   help="Edit an existing budget class.",
+                   default=False, action="store_true")
+    p.add_argument("--edit-transaction",
                    help="Edit an existing transaction.",
                    default=False, action="store_true")
 
     return vars(p.parse_args())
 
 
-# ============================ Main Functionality ============================ #
+# =========================== Listing/Summarizing ============================ #
 # Prints basic information about each budget class to the terminal.
 def summarize():
-    # get all expense and income classes
-    eclasses = api.get_classes(ctype=BudgetClassType.EXPENSE)
-    iclasses = api.get_classes(ctype=BudgetClassType.INCOME)
-
     # Helper function for printing a budget class
     def summarize_budget_class(c, prefix):
         # print the name and description
@@ -201,7 +250,7 @@ def summarize():
 
         # compute some basic numbers for the class
         stat_total = 0.0
-        transactions = c.sort()
+        transactions = c.all()
         for t in transactions:
             stat_total += t.price
         latest = None if len(transactions) == 0 else transactions[0]
@@ -221,7 +270,18 @@ def summarize():
             print("%s%s%s" % (prefix2, prefix3, lines[i]))
 
         # return the total value for this class
-        return stat_total
+        return stat_total 
+    
+    # ----------------------------- Runner Code ------------------------------ #
+    # get all classes and separate them into expense and income
+    classes = budget.all()
+    eclasses = []
+    iclasses = []
+    for c in classes:
+        if c.ctype == BudgetClassType.INCOME:
+            iclasses.append(c)
+        else:
+            eclasses.append(c)
 
     # process all expense classes
     eclen = len(eclasses)
@@ -247,41 +307,174 @@ def summarize():
     print("----")
     print("Net:             %s" % dollar_to_string(net))
 
+# Handles the '--list' option.
+def list_all():
+    # Helper function for listing full budget class details.
+    def list_budget_class(c):
+        # print the name and description
+        color = C_GREEN if c.ctype == BudgetClassType.INCOME else C_YELLOW
+        print("%s%s%s: %s" % (color, c.name, C_NONE, c.desc))
+
+        # now iterate through all transactions and print them out
+        allts = c.all()
+        atlen = len(allts)
+        for j in range(atlen):
+            prefix = STAB_TREE1 if j == atlen - 1 else STAB_TREE2
+            print("%s%s" % (prefix, allts[j]))
+    
+    # get all classes within the budget (separate by type)
+    classes = budget.all()
+    eclasses = []
+    iclasses = []
+    for c in classes:
+        if c.ctype == BudgetClassType.INCOME:
+            iclasses.append(c)
+        else:
+            eclasses.append(c)
+    allclasses = eclasses + iclasses
+    alen = len(allclasses)
+
+    # for each expense class, list it
+
+    for i in range(alen):
+        list_budget_class(allclasses[i])
+
 # Handles the '--json' option.
 def list_json():
-    print(json.dumps(api.to_json(), indent=4))
+    print(json.dumps(budget.to_json(), indent=4))
 
-# Prompts the user for information to add a new transaction.
+
+# ================================== Adding ================================== #
+# Handles '--add-class'.
+def add_class():
+    # prompt the user for a few things: name, type, description, and keywords
+    ctype = input_class_type()
+    name = input_wrapper("Class name:").strip()
+    desc = input_wrapper("Class description:").strip()
+    words = input_wrapper("Class key words:").strip().lower().split()
+    
+    # construct a budget class and add it to the budget
+    bc = BudgetClass(name, ctype, desc, keywords=words)
+    try:
+        budget.add_class(bc)
+        success("Budget class added.")
+    except Exception as e:
+        fatality(msg="failed to add a new budget class", exception=e)
+
+# Handles '--add-transaction'.
 def add_transaction():
+    # make sure we actually have budget classes first
+    if len(budget.all()) == 0:
+        exit(msg="You have no budget classes.")
+
+    # get the price as input from the user
     price = input_price()
     if price == None:
-        sys.stderr.write("The price must be a positive integer or float.\n")
-        sys.exit(1)
+        exit(msg="The price must be a positive integer or float.")
 
-    # read the vendor, description, and category as input
+    # read the vendor, description, and budget class
     vendor = input_wrapper("Vendor:", blank_ok=True).strip()
     desc = input_wrapper("Description:", blank_ok=True).strip()
-
-    # get the budget class
-    bclass = None
-    while bclass == None:
-        bclass = input_budget_class()
-        if bclass == None:
-            print("Couldn't find a matching budget class.")
-            continue
+    bclass = input_class()
 
     # add a transaction object to the correct bclass and save it
     t = Transaction(price, vendor=vendor, description=desc)
-    api.add_transaction(t, bclass)
-    api.save()
+    try:
+        budget.add_transaction(bclass, t)
+        success("Transaction added.")
+    except Exception as e:
+        fatality(msg="failed to add a new transaction", exception=e)
 
+
+# ================================= Deletion ================================= #
+# Handles '--delete-class'.
+def delete_class():
+    # make sure we actually have budget classes first
+    if len(budget.all()) == 0:
+        exit(msg="You have no budget classes.")
+
+    # get the class from input, then try to delete
+    bclass = input_class()
+    try:
+        budget.delete_class(bclass)
+        success("Budget class deleted.")
+    except Exception as e:
+        fatality(msg="failed to delete the specified class", exception=e)
+    
 # Prompts the user for information to delete an existing transaction.
-def remove_transaction():
-    # get a transaction as input, then invoke the API to delete the transaction
-    # and write out to disk
+def delete_transaction():
+    # get the transaction from input, then try to delete
     t = input_transaction()
-    api.delete_transaction(t)
-    api.save()
+    try:
+        budget.delete_transaction(t)
+        success("Transaction deleted.")
+    except Exception as e:
+        raise e
+        fatality(msg="failed to delete the specified transaction", exception=e)
+
+
+# ================================= Updates ================================== #
+def edit_class():
+    # make sure we actually have budget classes first
+    if len(budget.all()) == 0:
+        exit(msg="You have no budget classes.")
+    
+    # get the class from input and make a shallow copy
+    bc = input_class().copy()
+    updates = []
+
+    # prompt to enter a new type
+    tstr = "income" if bc.ctype == BudgetClassType.INCOME else "expense"
+    print("Current type: %s" % tstr)
+    ctype = input_class_type("New type:", blank_ok=True)
+    if ctype != None:
+        bc.ctype = ctype
+        tstr = "income" if bc.ctype == BudgetClassType.INCOME else "expense"
+        updates.append("Type updated to %s." % tstr)
+
+    # prompt to enter a new name
+    print("Current name: %s" % bc.name)
+    name = input_wrapper("New name:", blank_ok=True)
+    if name != "":
+        bc.name = name.strip()
+        updates.append("Name updated to \"%s\"." % bc.name)
+
+    # prompt to enter a new description
+    print("Current description: %s" % bc.desc)
+    desc = input_wrapper("New description:", blank_ok=True)
+    if desc != "":
+        bc.desc = desc.strip()
+        updates.append("Description updated to \"%s\"." % bc.desc)
+
+    # print all keywords in a nice format, then prompt the user for new keywords
+    sys.stdout.write("Current keywords: ")
+    for word in bc.keywords:
+        sys.stdout.write("%s " % word)
+    sys.stdout.write("\n")
+    words = input_wrapper("New key words:", blank_ok=True)
+    if words != "":
+        bc.keywords = words.strip().lower().split()
+        # create a nicely-formatted update string to print later
+        ustr = "Keywords updated to: "
+        for w in bc.keywords:
+            ustr += "\"%s\" " % w
+        updates.append(ustr)
+
+    # update the budget backend
+    try:
+        budget.update_class(bc)
+    except Exception as e:
+        fatality(msg="failed to update class", exception=e)
+
+    # if no updates were made, print and return
+    if len(updates) == 0:
+        print("No changes made.")
+        return
+
+    # otherwise, we'll print all updates
+    for u in updates:
+        success(u)
+
 
 # Handles the '--edit' option.
 def edit_transaction():
@@ -308,27 +501,36 @@ def edit_transaction():
     if desc != "":
         t.desc = desc
         updates.append("Description updated to \"%s\"." % t.desc)
+
+    # prompt user to edit the timestamp
+    print("Current timestamp: %s" % t.to_date_string())
+    ts = input_date("New timestamp:", blank_ok=True)
+    if ts != None:
+        t.timestamp = ts
+        updates.append("Timestamp updated to %s." % t.to_date_string())
     
     # ask if the user wants to move it to a new class
+    owner = t.owner
     if input_boolean("Move to a different class?"):
-        bclass_new = input_budget_class()
-        bclass_old = t.owner
-        # move the transaction between classes
-        if api.move_transaction(t, bclass_new):
-            updates.append("Moved to a new class: '%s' --> '%s'." %
-                           (bclass_old.name, bclass_new.name))
+        owner = input_class()
+        updates.append("Moved to a new class: '%s' --> '%s'." %
+                           (t.owner.name, owner.name))
+
+    # invoke the API to remove the transaction then re-add it
+    try:
+        budget.delete_transaction(t)
+        budget.add_transaction(owner, t)
+    except Exception as e:
+        fatality(msg="failed to update transaction", exception=e)
     
-    # display updates to the user
+    # if no updates were made, say so and return
     if len(updates) == 0:
-        print("\nNo changes made.")
-    else:
-        print("\nChanges made:")
-        ulen = len(updates)
-        for i in range(ulen):
-            prefix = STAB_TREE1 if i == ulen - 1 else STAB_TREE2
-            print("%s%s" % (prefix, updates[i]))
-        # save to disk
-        api.save()
+        print("No changes made.")
+        return
+    
+    # otherwise, print all updates
+    for u in updates:
+        success(u)
     
 # Main function.
 def main():
@@ -337,36 +539,55 @@ def main():
     global config
     try:
         config = Config(args["config"][0])
-        config.parse()
     except Exception as e:
         fatality(msg="failed to initialize config", exception=e)
 
-    # now, initialize an API object
-    global api
+    # now, initialize a Budget object
+    global budget
     try:
-        api = API(config)
+        budget = Budget(config)
     except Exception as e:
-        fatality(msg="failed to initialize API", exception=e)
+        fatality(msg="failed to initialize budget", exception=e)
 
     # if '--json' was given, we'll dump json
     if "json" in args and args["json"]:
         list_json()
-        sys.exit(0)
+        exit()
 
-    # if '--add' was given, we'll try to add, then exit
-    if "add" in args and args["add"]:
+    # if '--list' was given, we'll write out a full list
+    if "list" in args and args["list"]:
+        list_all()
+        exit()
+
+    # if '--add-class' was given, we'll try to add, then exit
+    if "add_class" in args and args["add_class"]:
+        add_class()
+        exit()
+
+    # if '--add-transaction' was given, we'll try to add, then exit
+    if "add_transaction" in args and args["add_transaction"]:
         add_transaction()
-        sys.exit(0)
+        exit()
 
-    # if '--remove' was given, we'll try to remove, then exit
-    if "remove" in args and args["remove"]:
-        remove_transaction()
-        sys.exit(0)
+    # if '--delete-class' was given, we'll try to remove, then exit
+    if "delete_class" in args and args["delete_class"]:
+        delete_class()
+        exit()
 
-    # if '--edit' was given, we'll try to edit, then exit
-    if "edit" in args and args["edit"]:
+    # if '--delete-transaction' was given, we'll try to remove, then exit
+    if "delete_transaction" in args and args["delete_transaction"]:
+        delete_transaction()
+        exit()
+
+    # if '--edit-class' was given, we'll try to edit, then exit
+    if "edit_class" in args and args["edit_class"]:
+        edit_class()
+        exit()
+
+    # if '--edit-class' was given, we'll try to edit, then exit
+    if "edit_transaction" in args and args["edit_transaction"]:
         edit_transaction()
-        sys.exit(0)
+        exit()
 
     # if nothing else was provided, we'll print a summary
     summarize()

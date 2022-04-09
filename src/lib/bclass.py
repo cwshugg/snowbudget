@@ -5,6 +5,7 @@
 # Imports
 import os
 import sys
+import json
 from enum import Enum
 from datetime import datetime
 import hashlib
@@ -28,13 +29,12 @@ class BudgetClassType(Enum):
 # Represents a single "category"/"class" of budgeting.
 class BudgetClass:
     # Constructs a new expense class given a name, type, and description.
-    def __init__(self, name, ctype, desc, keywords=[], history=[], default=False, bcid=None):
+    def __init__(self, name, ctype, desc, keywords=[], history=[], bcid=None):
         self.name = name            # name of the class
         self.ctype = ctype          # type of class (EXPENSE, INCOME, etc.)
         self.desc = desc            # description of this class
         self.keywords = keywords    # keywords to identify this class
         self.history = history      # transaction history
-        self.default = default      # whether or not the class is a default
         # we'll generate a unique ID string for this budget class if one wasn't
         # passed into the function
         self.bcid = bcid
@@ -55,10 +55,10 @@ class BudgetClass:
     
     # Used to iterate across a class's transaction history.
     def __iter__(self):
-        for t in self.history:
+        for t in self.all():
             yield t
 
-    # --------------------------- JSON and File IO --------------------------- #
+    # --------------------------------- JSON --------------------------------- #
     # Used to convert the class into a JSON object.
     def to_json(self):
         # iterate through the history and generate a list of JSON objects
@@ -74,7 +74,6 @@ class BudgetClass:
             "description": self.desc,
             "keywords": self.keywords,
             "history": hdata,
-            "default": self.default
         }
         return jdata
     
@@ -89,7 +88,6 @@ class BudgetClass:
             ["description", str, "each class file must have a \"description\" string."],
             ["keywords", list, "each class file must have \"keywords\" list."],
             ["history", list, "each class file must have a \"history\" list."],
-            ["default", bool, "each class file must have a \"default\" boolean."]
         ]
         for f in expected:
             assert f[0] in jdata and type(jdata[f[0]]) == f[1], f[2]
@@ -103,7 +101,7 @@ class BudgetClass:
         # create the budget class object
         c = BudgetClass(jdata["name"], ctype, jdata["description"],
                         keywords=jdata["keywords"], history=[],
-                        default=jdata["default"], bcid=jdata["id"])
+                        bcid=jdata["id"])
         
         # try to extract the list of history objects and add them to the new
         # budget class object
@@ -111,7 +109,27 @@ class BudgetClass:
             c.add(Transaction.from_json(entry))
         return c
     
-    # ----------------------------- Conversions ------------------------------ #
+    # ------------------------------- File IO -------------------------------- #
+    # Writes this budget class out to disk as a JSON file.
+    def save(self, fpath):
+        # first, convert the object to JSON
+        jdata = self.to_json()
+        # open the file, write it all out, then close
+        fp = open(fpath, "w")
+        fp.write(json.dumps(jdata, indent=4))
+        fp.close()
+
+    # Used to load a budget class JSON file from disk. Returns a new BudgetClass
+    # object on success. Throws some exception on failure.
+    @staticmethod
+    def load(fpath):
+        # open, read entire content, try to convert to a dictionary, then close
+        fp = open(fpath, "r")
+        jdata = json.loads(fp.read())
+        fp.close()
+        # invoke the 'from_json' function and return
+        return BudgetClass.from_json(jdata)
+
     # Turns the category's name in to a Linux-friendly file name.
     def to_file_name(self):
         fname = self.name.lower()
@@ -119,16 +137,17 @@ class BudgetClass:
         return fname + ".json"
     
     # ------------------------------ Operations ------------------------------ #
+    # Takes in a class ID and returns True if this object's ID matches.
+    def match_id(self, bcid):
+        return self.bcid == bcid
+
     # Takes in a string and attempts to match it against the class's ID or one
     # of the class's keywords. If it loosely matches ('text' is either contained
     # in or equal to one of the keywords), True is returned.
     # Otherwise, False is returned.
     def match(self, text):
         text = text.lower()
-        # first, check the ID
-        if text == self.bcid:
-            return True
-        # then, check the keywords
+        # check all keywords
         for word in self.keywords:
             if text in word:
                 return True
@@ -150,9 +169,14 @@ class BudgetClass:
         transaction.owner = None
         return True
     
-    # Sorts all contained transactions by datetime and returns the list sorted
-    # with most recent at the front.
-    def sort(self):
-        self.history.sort(key=lambda t: t.timestamp, reverse=True)
-        return self.history
+    # Returns a list of all the class's transactions in sorted order by
+    # timestamp (with the most recent transactions appearing first)
+    def all(self):
+        return sorted(self.history, key=lambda t: t.timestamp, reverse=True)
+    
+    # Makes a shallow copy of the budget class with the same ID.
+    def copy(self):
+        return BudgetClass(self.name, self.ctype, self.desc,
+                           keywords=self.keywords, history=self.history,
+                           bcid=self.bcid)
 
