@@ -9,7 +9,7 @@ server_addr = "0.0.0.0"
 server_port = 7669
 server_root_dpath = "/home/snowmiser/snowbudget/root"
 server_home_fname = "index.html"            # home page for non-auth users
-server_home_auth_fname = "auth/index.html"  # home page for auth users
+server_home_auth_fname = "auth_index.html"  # home page for auth users
 server_public_files = [server_home_fname, "script/auth.js", "assets/main.css", "assets/favicon.ico"]
 
 # Budget globals
