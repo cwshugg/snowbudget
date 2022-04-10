@@ -9,84 +9,8 @@ const url = window.location.protocol + "//" + window.location.host;
 const bclass_expense_container = document.getElementById("bclass_expenses");
 const bclass_income_container = document.getElementById("bclass_income");
 const summary_container = document.getElementById("budget_summary");
-
-// ========================== Server Communication ========================== //
-// Takes in an endpoint string, HTTP method, and JSON message body and sends a
-// HTTP request to the server.
-async function send_request(endpoint, method, jdata)
-{
-    // build a request body string, if JSON data was given
-    let request_body = null;
-    if (jdata)
-    { request_body = JSON.stringify(jdata); }
-
-    // send a request to the correct server endpoint
-    let response = await fetch(url + endpoint, {
-        method: method, body: request_body
-    });
-
-    // retrieve the response body and attempt to parse it as JSON
-    let text = await response.text();
-    return JSON.parse(text);
-}
-
-// Used to retrieve all budget data from the server.
-async function retrieve_data()
-{
-    data = await send_request("/get/all", "GET", null);
-    if (!data.success)
-    {
-        let message = "failed to retrieve content (" + data.message + ")."
-        console.log(message);
-    }
-    return data;
-}
-
-// ============================ Helper Functions ============================ //
-// Takes in a float value and returns a US-dollar-formatted string.
-function float_to_dollar_string(value)
-{
-    let formatter = new Intl.NumberFormat("en-US", {
-        style: "currency",
-        currency: "USD",
-        minimumFractionDigits: 2,
-        maximumFractionDigits: 2
-    });
-    return formatter.format(value);
-}
-
-// Takes in a float/integer timestamp and returns a string formatted as a date.
-function timestamp_to_date_string(value)
-{
-    let date = new Date(value * 1000.0);
-    let str = date.getFullYear() + "-";
-    str += date.getMonth() + 1 + "-";
-    str += date.getDate();
-    return str;
-}
-
-// Returns true if the given class is an expense class.
-function bclass_is_expense(bclass)
-{
-    t = bclass.type.toLowerCase();
-    return t === "e" || t === "expense";
-}
-
-// Returns true if the given class is an income class.
-function bclass_is_income(bclass)
-{
-    t = bclass.type.toLowerCase();
-    return t === "i" || t === "income";
-}
-
-// Computes the sum of all the bclass's transactions and returns it.
-function bclass_sum(bclass)
-{
-    let sum = 0.0;
-    for (let i = 0; i < bclass.history.length; i++)
-    { sum += bclass.history[i].price; }
-    return sum;
-}
+const btn_add_transaction = document.getElementById("btn_add_transaction");
+const btn_add_class = document.getElementById("btn_add_class");
 
 
 // ============================== Interaction =============================== //
@@ -113,6 +37,12 @@ function click_transaction_row(ev)
 
     let transaction_id = tr.id;
     console.log("TODO: OPEN TRANSACTION: " + transaction_id);
+}
+
+// Invoked when the 'add transaction' class is clicked.
+function click_add_transaction(ev)
+{
+    window.location.replace("addt.html");
 }
 
 
@@ -312,7 +242,13 @@ async function summary_refresh(bclasses)
 // Used to refresh the main menu.
 async function menu_refresh(bclasses)
 {
-    // TODO
+    // enable the buttons
+    btn_add_transaction.disabled = false;
+    btn_add_class.disabled = false;
+
+    // add listener to the 'add transaction' button to jump to the right page
+    btn_add_transaction.addEventListener("click", click_add_transaction);
+
 }
 
 // Used to update a single budget class UI element.

@@ -1,0 +1,54 @@
+<!-- home HTML page for documentation -->
+<html lang="en" class="extension-main">
+    <!-- head and imports -->
+    <head>
+        <meta charset="UTF-8" />
+        <title>snowbudget</title>
+        <!-- CSS imports -->
+        <link rel="stylesheet" href="assets/main.css">
+        <link rel="icon" href="assets/favicon.ico">
+    </head>
+    <!-- main body -->
+    <body class="color-bg1 color-text1 font-main">
+        <div class="body-container">
+            <!-- title -->
+            <div>
+                <h1 class="color-acc2">
+                    <span class="color-acc1">[</span>sb.add.transaction<span class="color-acc1">]</span>
+                </h1>
+            </div>
+
+            <!-- text boxes -->
+            <div id="addt_inputs">
+                <!-- price input -->
+                <div>
+                    <p>Price</p>
+                    <input class="input-main"></input>
+                </div>
+                <!-- vendor input -->
+                <div>
+                    <p>Vendor</p>
+                    <input class="input-main"></input>
+                </div>
+                <!-- description input -->
+                <div>
+                    <p>Description</p>
+                    <input class="input-main"></input>
+                </div>
+            </div>
+    
+            <!-- menu -->
+            <div id="addt_menu">
+                <div class="button-container">
+                    <button id="btn_cancel" class="button-main">Cancel</button>
+                    <button id="btn_save" class="button-main">Save</button>
+                </div>
+            </div>
+            
+            <!-- JS imports -->
+            <script type="text/javascript" src="script/helpers.js"></script>
+            <script type="text/javascript" src="script/comms.js"></script>
+            <script type="text/javascript" src="script/addt.js"></script>
+        </div>
+    </body>
+</html>

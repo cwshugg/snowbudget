@@ -1,0 +1,51 @@
+<!-- home HTML page for documentation -->
+<html lang="en" class="extension-main">
+    <!-- head and imports -->
+    <head>
+        <meta charset="UTF-8" />
+        <title>snowbudget</title>
+        <!-- CSS imports -->
+        <link rel="stylesheet" href="assets/main.css">
+        <link rel="icon" href="assets/favicon.ico">
+    </head>
+    <!-- main body -->
+    <body class="color-bg1 color-text1 font-main">
+        <div class="body-container">
+            <!-- title -->
+            <div>
+                <h1 class="color-acc2">
+                    <span class="color-acc1">[</span>sb.home<span class="color-acc1">]</span>
+                </h1>
+            </div>
+    
+            <!-- summary -->
+            <div id="budget_summary">
+                <p>Contacting server...</p>
+            </div>
+            
+            <!-- menu -->
+            <div id="budget_menu">
+                <div class="button-container">
+                    <button id="btn_add_transaction" class="button-main" disabled>Add Transaction</button>
+                    <button id="btn_add_class" class="button-main" disabled>Add Budget Class</button>
+                </div>
+            </div>
+            
+            <!-- expense budget classes -->
+            <div id="bclass_expenses">
+                <!-- will be filled dynamically -->
+            </div>
+    
+            <!-- income budget classes -->
+            <div id="bclass_income">
+                <!-- will be filled dynamically -->
+            </div>
+            
+            <!-- JS imports -->
+            <script type="text/javascript" src="script/collapsible.js"></script>
+            <script type="text/javascript" src="script/helpers.js"></script>
+            <script type="text/javascript" src="script/comms.js"></script>
+            <script type="text/javascript" src="script/home.js"></script>
+        </div>
+    </body>
+</html>
