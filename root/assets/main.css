@@ -4,43 +4,63 @@
     --color-bg1: rgb(0, 0, 0);
     --color-bg2: rgb(32, 32, 32);
     --color-bg3: rgb(48, 48, 48);
+    --color-bg4: rgb(64, 64, 64);
+    --color-table1: rgb(24, 24, 24);
+    --color-table2: rgb(20, 20, 20);
+    --color-table3: rgb(32, 32, 32);
     --color-text1: rgb(225, 225, 255);
     --color-acc1: rgb(153, 217, 234);
     --color-acc2: rgb(104, 133, 232);
     --color-acc3: rgb(0, 190, 225);
-    --font1: "Consolas", "Courier New", Courier, monospace
+    --color-acc4: rgb(255, 110, 110);
+    --color-expense1: rgb(255, 206, 95);
+    --color-expense2: rgb(255, 238, 198);
+    --color-expense3: rgb(155, 138, 98);
+    --color-income1: rgb(0, 215, 0);
+    --color-income2: rgb(190, 241, 191);
+    --color-income3: rgb(90, 141, 91);
+    --font1: "Consolas", "FreeMono", "Courier New", Courier, monospace
 }
 
 /********************************** Colors ***********************************/
 .color-bg1
-{
-    background-color: var(--color-bg1);
-}
+{ background-color: var(--color-bg1); }
 
 .color-bg2
-{
-    background-color: var(--color-bg2);
-}
+{ background-color: var(--color-bg2); }
 
 .color-text1
-{
-    color: var(--color-text1);
-}
+{ color: var(--color-text1); }
 
 .color-acc1
-{
-    color: var(--color-acc1);
-}
+{ color: var(--color-acc1); }
 
 .color-acc2
-{
-    color: var(--color-acc2);
-}
+{ color: var(--color-acc2); }
 
 .color-acc3
-{
-    color: var(--color-acc3);
-}
+{ color: var(--color-acc3); }
+
+.color-acc4
+{ color: var(--color-acc4); }
+
+.color-income1
+{ color: var(--color-income1); }
+
+.color-income2
+{ color: var(--color-income2); }
+
+.color-income3
+{ color: var(--color-income3); }
+
+.color-expense1
+{ color: var(--color-expense1); }
+
+.color-expense2
+{ color: var(--color-expense2); }
+
+.color-expense3
+{ color: var(--color-expense3); }
 
 /*********************************** Fonts ***********************************/
 .font-main
@@ -48,81 +68,50 @@
     font-family: var(--font1);
 }
 
-/********************************** Buttons **********************************/
+/********************************* Buttons ***********************************/
+button
+{
+    /* disable mobile blue-highlight when clicking buttons */
+    -webkit-tap-highlight-color: transparent;
+}
+
+.button-container
+{
+}
+
 .button-main
 {
-    background-color: var(--color-bg2);
-    color: var(--color-text2);
-    border-color: var(--color-bg3);
-    font-family: var(--font1);
+    background-color: var(--color-bg3);
+    color: var(--color-text1);
+    /*color: var(--color-acc1);*/
+    cursor: pointer;
+    padding: 12px;
+    margin: 8px;
+    border: none;
+    text-align: center;
+    outline: none;
+    font-size: 16px;
     font-weight: bold;
-    font-size: 16px;
-    margin: 2px;
+    font-style: var(--font-main);
+    border-radius: 4px;
 }
 
-.button-toggle
+.active, .button-main:hover
 {
-    background-color: var(--color-bg2);
-    color: var(--color-text2);
-    border-color: var(--color-bg3);
-    font-family: var(--font1);
-    font-weight: bold;
-    padding: 8px;
-    font-size: 16px;
-    margin: 2px;
+    background-color: var(--color-bg4);
 }
 
-.button-color
+.button-main:focus
 {
-    background-color: var(--color-bg2);
-    color: var(--color-text2);
-    border-color: var(--color-bg3);
-    font-family: var(--font1);
-    font-weight: bold;
-    padding: 8px;
-    font-size: 16px;
-    margin: 2px;
-    height: 75px;
+    outline: none;
+    box-shadow: none;
 }
-
-.button-brightness
-{
-    background-color: var(--color-bg2);
-    color: var(--color-text2);
-    border-color: var(--color-bg3);
-    font-family: var(--font1);
-    font-weight: bold;
-    padding: 8px;
-    font-size: 16px;
-    margin: 2px;
-    height: 75px;
-}
-
-.button-shortcut
-{
-    background-color: var(--color-bg2);
-    color: var(--color-text2);
-    border-color: var(--color-bg3);
-    font-family: var(--font1);
-    font-weight: bold;
-    padding: 8px;
-    font-size: 16px;
-    margin: 2px;
-}
-
-/******************************* Input Fields ********************************/
-.input-text
-{
-    font-size: 16px;
-    margin: 2px;
-}
-
 
 /******************************* Collapsibles ********************************/
 .collapsible-button
 {
     background-color: var(--color-bg2);
-    color: var(--color-acc1);
+    /*color: var(--color-acc1);*/
     cursor: pointer;
     padding: 12px;
     width: 100%;
@@ -132,6 +121,8 @@
     font-size: 16px;
     font-weight: bold;
     margin-top: 8px;
+    border-top-left-radius: 4px;
+    border-top-right-radius: 4px;
 }
 
 .active, .collapsible-button:hover
@@ -142,6 +133,7 @@
 .collapsible-button-indicator
 {
     float: right;
+    font-weight: normal;
 }
 
 .collapsible-content
@@ -151,7 +143,60 @@
     overflow: hidden;
     background-color: var(--color-bg2);
     font-size: 16px;
+    border-bottom-left-radius: 4px;
+    border-bottom-right-radius: 4px;
 }
+
+
+/********************************** Tables ***********************************/
+.ttable-container
+{
+    padding: 2px;
+    padding-bottom: 8px;
+    margin: 2px;
+    margin-bottom: 8px;
+}
+
+.ttable
+{
+    width: 100%;
+    border: 1px solid;
+    border-collapse: collapse;
+}
+
+.ttable-row
+{
+    background-color: var(--color-table1);
+}
+
+.ttable-transaction-row
+{
+    background-color: var(--color-table2);
+}
+
+.ttable-transaction-row:hover
+{
+    cursor: pointer;
+    background-color: var(--color-table3);
+    -webkit-tap-highlight-color: transparent;
+}
+
+.ttable-header
+{
+    border: 1px solid;
+    border-collapse: collapse;
+    text-align: center;
+    padding: 8px;
+}
+
+.ttable-cell
+{
+    border: 1px solid;
+    border-collapse: collapse;
+    text-align: center;
+    padding: 8px;
+}
+
 
 /****************************** Mobile Screens *******************************/
 /* https://stackoverflow.com/questions/42025632/how-to-detect-only-with-css-mobile-screens */
@@ -164,98 +209,49 @@
 
     p
     {
-        font-size: 40px;
+        font-size: 36px;
     }
 
     .button-main
     {
-        font-size: 48px;
-        margin: 8px;
+        padding: 32px;
+        font-size: 30px;
+        margin: 16px;
+        border-radius: 8px;
     }
 
-    .button-toggle
-    {
-        width: 50%;
-        height: 150px;
-        border-width: 8px;
-        font-size: 48px;
-        margin: 8px;
-    }
-
-    .button-color
-    {
-        width: 100%;
-        height: 150px;
-        border-width: 8px;
-        font-size: 48px;
-        margin: 8px;
-    }
-
-    .button-brightness
-    {
-        width: 100%;
-        height: 150px;
-        border-width: 8px;
-        font-size: 48px;
-        margin: 8px;
-    }
-
-    .button-shortcut
-    {
-        font-size: 48px;
-        margin: 8px;
-        border-width: 8px;
-        width: 100%;
-        height: 150px;
-    }
-
-    .input-text
-    {
-        font-size: 40px;
-        margin: 8px;
-    }
-
-    .input-color
-    {
-        width: 100%;
-        height: 150px;
-        margin: 8px;
-    }
-
-    .input-slider
-    {
-        width: 100%;
-        height: 150px;
-        margin: 8px;
-        border-radius: 16px;
-    }
-
-    .dropdown
-    {
-        font-size: 48px;
-        padding: 8px;
-        margin: 8px;
-    }
-    
-    .div-button-shortcut-container
-    {
-        margin: 4px;
-        padding: 4px;
-        display: block;
-        justify-content: flex-start;
-    }
-    
     .collapsible-button
     {
         padding: 32px;
         width: 100%;
         font-size: 48px;
         margin-top: 16px;
+        border-top-left-radius: 8px;
+        border-top-right-radius: 8px;
     }
     
     .collapsible-content
     {
         padding: 0 32px;
         font-size: 40px;
+        border-bottom-left-radius: 8px;
+        border-bottom-right-radius: 8px;
+    }
+
+    .ttable
+    {
+        font-size: 32px;
+    }
+
+    .ttable-header
+    {
+        padding: 16px;
+        font-size: 30px;
+    }
+
+    .ttable-cell
+    {
+        padding: 16px;
+        font-size: 30px;
     }
 }
