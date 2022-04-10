@@ -138,15 +138,16 @@ def endpoint_static_file(fpath):
 @app.route("/auth/login", methods=["POST"])
 def endpoint_auth_login():
     # attempt to parse the login data and verify the login attempt
-    if auth_check_login(request.get_data()):
+    username = auth_check_login(request.get_data())
+    if username != None:
         # create a cookie, add it as a response header, and return
-        cookie = auth_make_cookie()
+        cookie = auth_make_cookie(username)
         cookie_str = "%s=%s; Path=/" % (auth_cookie_name, cookie)
         # if HTTPS is enabled, add the 'Secure' flag to the cookie
         if config.certs_enabled:
             cookie_str += "; Secure"
         # build a response and send the cookie back
-        return make_response_json(msg="Authentication succeeded.",
+        return make_response_json(msg="Authentication succeeded. Hello, %s." % username,
                                   rheaders={"Set-Cookie": cookie_str})
     else:
         return make_response_json(success=False,
@@ -354,6 +355,51 @@ def endpoint_create_transaction():
                     description=jdata["description"], timestamp=ts)
     b.add_transaction(bclass, t)
     return make_response_json(msg="Transaction created.", jdata=t.to_json())
+
+# This endpoint allows a query for a budget class to be specified rather than a
+# class ID itself. This searches for a class and adds a new transaction to it.
+# A message is sent back if a matching class can't be found.
+@app.route("/create/transaction/search", methods = ["POST"])
+def endpoint_create_transaction_search():
+    if not is_authenticated(request):
+        return make_response_json(rstatus=404)
+
+    # extract the json data in the request body
+    jdata = get_request_json(request)
+    if type(jdata) == Exception:
+        return make_response_json(rstatus=400, msg="Failed to parse request body.")
+    elif jdata == None:
+        return make_response_json(rstatus=400, msg="Missing request body.")
+
+    # we're expecting a class query *and* other fields within the JSON data
+    expect = [["query", str], ["price", float], ["vendor", str],
+              ["description", str], ["timestamp", int]]
+    if not check_json_fields(jdata, expect):
+        return make_response_json(success=False, msg="Missing JSON fields.")
+
+    # first, search for the class, given its ID (make a shallow copy)
+    b = get_budget()
+    matches = b.search_class(jdata["query"])
+    if len(matches) == 0:
+        return make_response_json(success=False,
+                                  msg="Couldn't find any matching classes.")
+    # otherwise, we'll just take the first one
+    bclass = matches[0]
+
+    # try to convert the given timestamp integer into a datetime object
+    ts = None
+    try:
+        ts = datetime.fromtimestamp(jdata["timestamp"])
+    except Exception as e:
+        raise e
+        return make_response_json(success=False, msg="Invalid JSON fields.")
+
+    # create a transaction struct and pass it to the API
+    t = Transaction(jdata["price"], vendor=jdata["vendor"],
+                    description=jdata["description"], timestamp=ts)
+    b.add_transaction(bclass, t)
+    return make_response_json(msg="Transaction created. Added to class: \"%s\"." % bclass.name,
+                              jdata=t.to_json())
 
 
 # ================================= Deletion ================================= #

@@ -19,7 +19,7 @@
     --color-income1: rgb(0, 215, 0);
     --color-income2: rgb(190, 241, 191);
     --color-income3: rgb(90, 141, 91);
-    --font1: "Consolas", "FreeMono", "Courier New", Courier, monospace
+    --font1: "Ubuntu", "Arial", "Consolas", "FreeMono", "Courier New", Courier, monospace
 }
 
 /********************************** Colors ***********************************/
@@ -66,6 +66,12 @@
 .font-main
 {
     font-family: var(--font1);
+}
+
+@font-face
+{
+    font-family: Ubuntu;
+    src: url("ubuntu.ttf") format("truetype");
 }
 
 /********************************* Buttons ***********************************/

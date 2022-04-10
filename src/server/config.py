@@ -10,7 +10,8 @@ server_port = 7669
 server_root_dpath = "/home/snowmiser/snowbudget/root"
 server_home_fname = "index.html"            # home page for non-auth users
 server_home_auth_fname = "auth_index.html"  # home page for auth users
-server_public_files = [server_home_fname, "script/auth.js", "assets/main.css", "assets/favicon.ico"]
+server_public_files = [server_home_fname, "script/auth.js", "assets/main.css",
+                       "assets/favicon.ico", "assets/ubuntu.ttf"]
 
 # Budget globals
 sb_config_fpath = "/home/snowmiser/snowbudget/config/example.json"
@@ -19,6 +20,7 @@ sb_config_fpath = "/home/snowmiser/snowbudget/config/example.json"
 key_dpath = "/home/snowmiser/snowbudget/keys"
 auth_key_fname = "auth_password.key"
 auth_jwt_key_fname = "auth_jwt.key"
+auth_special_user_fname = "auth_special_user.key"
 
 # Certifications/OpenSSL globals
 certs_enabled = True

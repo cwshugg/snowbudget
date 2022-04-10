@@ -16,7 +16,7 @@ const summary_container = document.getElementById("budget_summary");
 async function send_request(endpoint, method, jdata)
 {
     // build a request body string, if JSON data was given
-    request_body = null;
+    let request_body = null;
     if (jdata)
     { request_body = JSON.stringify(jdata); }
 
