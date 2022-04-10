@@ -399,11 +399,14 @@ async function ui_init()
         return;
     }
 
-    // extract the payload and pass it into our UI-init functions
-    let payload = data.payload;
-    summary_refresh(payload);
-    menu_refresh(payload);
-    budget_classes_refresh(payload);
+    // extract the payload and sort them (budget classes) by name
+    let bclasses = data.payload;
+    bclasses.sort(function(c1, c2) { return c1.name.localeCompare(c2.name); });
+
+    // pass the budget classes to refresh functions
+    summary_refresh(bclasses);
+    menu_refresh(bclasses);
+    budget_classes_refresh(bclasses);
 }
 
 // Function that's invoked upon window-load.
