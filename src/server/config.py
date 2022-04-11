@@ -2,8 +2,12 @@
 #
 #   Connor Shugg
 
+# Imports
 import os
 import json
+
+# Local imports
+from users import User
 
 # Main config class.
 class Config:
@@ -31,12 +35,13 @@ class Config:
             ["key_dpath", str, "missing key_dpath string"],
             ["auth_key_fname", str, "missing auth_key_fname string"],
             ["auth_jwt_key_fname", str, "missing auth_jwt_key_fname string"],
-            ["auth_special_user_fname", str, "missing auth_special_user_fname string"],
             # certs/HTTPS-related configs
             ["certs_enabled", bool, "missing certs_enabled boolean"],
             ["certs_dpath", str, "missing certs_dpath string"],
             ["certs_cert_fname", str, "missing certs_cert_fname string"],
-            ["certs_key_fname", str, "missing certs_key_fname string"]
+            ["certs_key_fname", str, "missing certs_key_fname string"],
+            # user-related configs
+            ["users", list, "missing users list"]
         ]
 
         # for each expected entry, assert its existence then set it as a global
@@ -44,4 +49,10 @@ class Config:
             key = f[0]
             assert key in jdata and type(jdata[key]) == f[1], f[2]
             setattr(self, key, jdata[key])
+
+        # for each user, try to create a user object
+        uobjs = []
+        for udata in self.users:
+            uobjs.append(User.from_json(udata))
+        self.users = uobjs
 

@@ -1,8 +1,9 @@
 # python artifacts
 __pycache__
 
-# server directories to ignore
-keys
+# directories to ignore
+sb_configs
+sb_keys
 
 # symbolic links
 sb

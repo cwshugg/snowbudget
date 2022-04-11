@@ -4,12 +4,13 @@
     "server_root_dpath": "/home/snowmiser/snowbudget/root",
     "server_home_fname": "index.html",
     "server_home_auth_fname": "home.html",
-    "server_public_files": [
+    "server_public_files":
+    [
         "index.html",
         "script/auth.js",
         "assets/main.css",
         "assets/favicon.ico",
-        "assets/ubuntu.tff"
+        "assets/ubuntu.ttf"
     ],
     
     "sb_config_fpath": "/home/snowmiser/snowbudget/config/example.json",
@@ -17,11 +18,16 @@
     "key_dpath": "/home/snowmiser/snowbudget/keys",
     "auth_key_fname": "auth_password.key",
     "auth_jwt_key_fname": "auth_jwt.key",
-    "auth_special_user_fname": "auth_special_user.key",
     
     "certs_enabled": true,
     "certs_dpath": "/etc/letsencrypt/live/beacon.shugg.dev/",
     "certs_cert_fname": "fullchain.pem",
-    "certs_key_fname": "privkey.pem"
+    "certs_key_fname": "privkey.pem",
+
+    "users":
+    [
+        {"username": "user0", "email": "someaddress1@gmail.com", "privilege": 1},
+        {"username": "user1", "email": "someaddress2@gmail.com", "privilege": 1}
+    ]
 }
 

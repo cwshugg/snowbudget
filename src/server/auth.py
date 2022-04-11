@@ -19,7 +19,6 @@ if dpath not in sys.path:                           # add to path
 config = None
 auth_password = None            # authentication password
 auth_secret = None              # JWT decode/encode key
-auth_special_user = None        # special user with no cookie expiration
 auth_cookie_name = "sb_auth"    # name of cookie
 
 
@@ -46,18 +45,12 @@ def auth_init(conf):
     auth_secret_fpath = os.path.join(config.key_dpath, config.auth_jwt_key_fname)
     auth_secret = read_file(auth_secret_fpath)
 
-    # attempt to read our special username
-    global auth_special_user
-    auth_special_user_fpath = os.path.join(config.key_dpath, config.auth_special_user_fname)
-    auth_special_user = read_file(auth_special_user_fpath)
-    
     print("Authentication password:   '%s'" % auth_password)
     print("JWT password:              '%s'" % auth_secret)
-    print("Special User:              '%s'" % auth_special_user)
 
 # ========================= Authentication Checking ========================= #
-# Checks a login attempt and returns a username. Returns None if the login
-# failed.
+# Checks a login attempt and returns the User object corresponding to the
+# user the just logged in. Returns None if the login failed.
 def auth_check_login(data):
     data = data.decode()
     # attempt to decode the data
@@ -77,7 +70,13 @@ def auth_check_login(data):
         # the password matches, so we'll return the username
         if "username" not in result:
             return None
-        return result["username"]
+
+        # make sure the username is in our database
+        for u in config.users:
+            if result["username"] == u.username:
+                return u
+        # if no matching user was found, return
+        return None
     # on exception, print and return
     except Exception as e:
         print("Failed to parse JSON contents: %s" % e)
@@ -111,15 +110,22 @@ def auth_check_cookie(cookie):
     now = int(datetime.now().timestamp())
     if result["iat"] > now:
         return False
-    # check the expiration time for the token, but only if the username isn't
-    # our "special" username (if you're looking at this code online, don't try
-    # figuring it out, it's *incredibly* long. Plus, you need the password too,
-    # which is also crazy-long.)
-    if result["sub"] != auth_special_user and result["exp"] <= now:
+    # make sure the 'sub' is one of our registered users
+    user = None
+    for u in config.users:
+        if result["sub"] == u.username:
+            user = u
+            break
+    if user == None:
         return False
 
-    if result["sub"] == auth_special_user:
-        print("Special user is making a request.")
+    # check the expiration time for the token, but only if the user doesn't
+    # have special privileges
+    if user.privilege > 0 and result["exp"] <= now:
+        return False
+
+    if user.privilege == 0:
+        print("Root user is making a request.")
 
     # if we passed all the above checks, they must be authenticated
     return True
@@ -127,11 +133,11 @@ def auth_check_cookie(cookie):
 
 # ================================ JWT Work ================================= #
 # Creates an encoded JWT cookie and returns it.
-def auth_make_cookie(username):
+def auth_make_cookie(user):
     global auth_secret
     # get the current datetime and compute an expiration time for the cookie
     now = int(datetime.now().timestamp())
-    data = {"iat": now, "exp": now + 2592000, "sub": username}
+    data = {"iat": now, "exp": now + 2592000, "sub": user.username}
     token = jwt.encode(data, auth_secret, algorithm="HS512").decode("utf-8")
     return token
 

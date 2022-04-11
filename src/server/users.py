@@ -6,7 +6,7 @@
 
 class User:
     # Simple constructor.
-    def __init__(self, username, email, privilege);
+    def __init__(self, username, email, privilege):
         self.username = username    # user's name
         self.email = email          # user's email (for notifications)
         self.privilege = privilege  # privilege level (0 being lowest)

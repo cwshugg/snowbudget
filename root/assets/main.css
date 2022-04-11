@@ -89,6 +89,9 @@
     font-family: var(--font1);
     background-color: var(--color-bg3);
     color: var(--color-text1);
+    border: none;
+    padding: 4px;
+    margin: 4px;
 }
 
 /********************************* Buttons ***********************************/
