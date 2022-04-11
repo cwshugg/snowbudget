@@ -1,30 +1,47 @@
-# Simple python file that defines globals for the flask server.
+# Simple python file that defines configurations for the flask server.
 #
 #   Connor Shugg
 
 import os
+import json
 
-# Server globals
-server_addr = "0.0.0.0"
-server_port = 7669
-server_root_dpath = "/home/snowmiser/snowbudget/root"
-server_home_fname = "index.html"            # home page for non-auth users
-server_home_auth_fname = "home.html"        # home page for auth users
-server_public_files = [server_home_fname, "script/auth.js", "assets/main.css",
-                       "assets/favicon.ico", "assets/ubuntu.ttf"]
+# Main config class.
+class Config:
+    def __init__(self, fpath):
+        self.fpath = fpath
 
-# Budget globals
-sb_config_fpath = "/home/snowmiser/snowbudget/config/example.json"
+        # open up the file and try to parse it as JSON
+        fp = open(fpath, "r")
+        data = fp.read()
+        fp.close()
+        jdata = json.loads(data)
 
-# Authentication globals
-key_dpath = "/home/snowmiser/snowbudget/keys"
-auth_key_fname = "auth_password.key"
-auth_jwt_key_fname = "auth_jwt.key"
-auth_special_user_fname = "auth_special_user.key"
+        # now, define and check all fields
+        expected = [
+            # server-related configs
+            ["server_addr", str, "missing server_addr string"],
+            ["server_port", int, "missing server_port int"],
+            ["server_root_dpath", str, "missing server_root_dpath string"],
+            ["server_home_fname", str, "missing server_home_fname string"],
+            ["server_home_auth_fname", str, "missing server_home_auth_fname string"],
+            ["server_public_files", list, "missing server_public_files list"],
+            # budget-related configs
+            ["sb_config_fpath", str, "missing sb_config_fpath string"],
+            # key-related configs
+            ["key_dpath", str, "missing key_dpath string"],
+            ["auth_key_fname", str, "missing auth_key_fname string"],
+            ["auth_jwt_key_fname", str, "missing auth_jwt_key_fname string"],
+            ["auth_special_user_fname", str, "missing auth_special_user_fname string"],
+            # certs/HTTPS-related configs
+            ["certs_enabled", bool, "missing certs_enabled boolean"],
+            ["certs_dpath", str, "missing certs_dpath string"],
+            ["certs_cert_fname", str, "missing certs_cert_fname string"],
+            ["certs_key_fname", str, "missing certs_key_fname string"]
+        ]
 
-# Certifications/OpenSSL globals
-certs_enabled = True
-certs_dpath = "/etc/letsencrypt/live/beacon.shugg.dev/"
-certs_cert_fname = "fullchain.pem"
-certs_key_fname = "privkey.pem"
+        # for each expected entry, assert its existence then set it as a global
+        for f in expected:
+            key = f[0]
+            assert key in jdata and type(jdata[key]) == f[1], f[2]
+            setattr(self, key, jdata[key])
 

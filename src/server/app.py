@@ -24,7 +24,6 @@ if dpath not in sys.path:                           # add to path
 # Local imports
 from server.auth import auth_check_login, auth_make_cookie, auth_check_cookie, \
                         auth_cookie_name
-import server.config as config
 from lib.config import Config
 from lib.budget import Budget
 from lib.bclass import BudgetClass, BudgetClassType
@@ -32,9 +31,19 @@ from lib.transaction import Transaction
 
 # Flask setup
 app = Flask(__name__)
-
+config = None # set dynamically later
 
 # ============================= Helper Functions ============================= #
+# Used to initialize anything that hasn't already been initialized.
+def check_init():
+    # only initialize once
+    global config
+    if config != None:
+        return
+   
+    # retrieve the config from the app's config
+    config = app.config["server_config_obj"]
+
 # Used to retrieve a fresh Budget object from the configuration path stored in
 # the server's config module.
 def get_budget():
@@ -110,6 +119,7 @@ def serve_file(fpath):
 # message to the client.
 @app.route("/")
 def endpoint_root():
+    check_init()
     # if the user is authenticated, we'll serve them the authenticated home
     # page. If not, we'll serve them the public one
     if is_authenticated(request):
@@ -119,6 +129,7 @@ def endpoint_root():
 # Static file handling.
 @app.route("/<path:fpath>")
 def endpoint_static_file(fpath):
+    check_init()
     is_auth = is_authenticated(request)
     # special case: if index.html was requested, check authentication and
     # replace it with the authenticated version
@@ -137,6 +148,7 @@ def endpoint_static_file(fpath):
 # Used to attempt a login.
 @app.route("/auth/login", methods=["POST"])
 def endpoint_auth_login():
+    check_init()
     # attempt to parse the login data and verify the login attempt
     username = auth_check_login(request.get_data())
     if username != None:
@@ -156,6 +168,7 @@ def endpoint_auth_login():
 # Authentication-checking endpoint.
 @app.route("/auth/check", methods=["GET"])
 def endpoint_auth_check():
+    check_init()
     # look for the correct cookie
     auth = auth_check_cookie(request.headers.get("Cookie"))
     if auth:
@@ -168,6 +181,7 @@ def endpoint_auth_check():
 # Used to retrieve ALL budget classes.
 @app.route("/get/all", methods = ["GET"])
 def endpoint_get_all():
+    check_init()
     if not is_authenticated(request):
         return make_response_json(rstatus=404)
 
@@ -179,6 +193,7 @@ def endpoint_get_all():
 # Helper function for the /get methods that takes in the ID field to expect in
 # the JSON request body.
 def get_helper(field):
+    check_init()
     if not is_authenticated(request):
         return make_response_json(rstatus=404)
 
@@ -211,11 +226,13 @@ def get_helper(field):
 # Used to retrieve a budget class. Expects a class ID.
 @app.route("/get/class", methods = ["POST"])
 def endpoint_get_class():
+    check_init()
     return get_helper("class_id")
 
 # Used to retrieve a transaction. Expects a transaction ID.
 @app.route("/get/transaction", methods = ["POST"])
 def endpoint_get_transaction():
+    check_init()
     return get_helper("transaction_id")
 
 
@@ -223,6 +240,7 @@ def endpoint_get_transaction():
 # Helper function used for the searcher endpoints. Takes in the 'mode' to
 # search on ("class" or "transaction")
 def search_helper(mode):
+    check_init()
     if not is_authenticated(request):
         return make_response_json(rstatus=404)
 
@@ -262,11 +280,13 @@ def search_helper(mode):
 # classes.
 @app.route("/search/class", methods = ["POST"])
 def endpoint_search_class():
+    check_init()
     return search_helper("class")
 
 # Takes in some string as input and uses it to search for matching transactions.
 @app.route("/search/transaction", methods = ["POST"])
 def endpoint_search_transaction():
+    check_init()
     return search_helper("transaction")
 
 
@@ -274,6 +294,7 @@ def endpoint_search_transaction():
 # Used to create a new budget class.
 @app.route("/create/class", methods = ["POST"])
 def endpoint_create_class():
+    check_init()
     if not is_authenticated(request):
         return make_response_json(rstatus=404)
 
@@ -319,6 +340,7 @@ def endpoint_create_class():
 # Used to create a new transaction.
 @app.route("/create/transaction", methods = ["POST"])
 def endpoint_create_transaction():
+    check_init()
     if not is_authenticated(request):
         return make_response_json(rstatus=404)
 
@@ -361,6 +383,7 @@ def endpoint_create_transaction():
 # A message is sent back if a matching class can't be found.
 @app.route("/create/transaction/search", methods = ["POST"])
 def endpoint_create_transaction_search():
+    check_init()
     if not is_authenticated(request):
         return make_response_json(rstatus=404)
 
@@ -405,6 +428,7 @@ def endpoint_create_transaction_search():
 # ================================= Deletion ================================= #
 # Helper function for the two delete endpoints.
 def delete_helper(field):
+    check_init()
     if not is_authenticated(request):
         return make_response_json(rstatus=404)
 
@@ -450,11 +474,13 @@ def delete_helper(field):
 # Used to delete a class.
 @app.route("/delete/class", methods = ["POST"])
 def endpoint_delete_class():
+    check_init()
     return delete_helper("class_id")
 
 # Used to delete a transaction.
 @app.route("/delete/transaction", methods = ["POST"])
 def endpoint_delete_transaction():
+    check_init()
     return delete_helper("transaction_id")
 
 
@@ -462,6 +488,7 @@ def endpoint_delete_transaction():
 # Used to edit an existing budget class.
 @app.route("/edit/class", methods = ["POST"])
 def endpoint_edit_class():
+    check_init()
     if not is_authenticated(request):
         return make_response_json(rstatus=404)
 
@@ -529,6 +556,7 @@ def endpoint_edit_class():
 # Used to edit an existing transaction.
 @app.route("/edit/transaction", methods = ["POST"])
 def endpoint_edit_transaction():
+    check_init()
     if not is_authenticated(request):
         return make_response_json(rstatus=404)
 

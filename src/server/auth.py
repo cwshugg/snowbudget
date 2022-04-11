@@ -15,10 +15,8 @@ dpath = os.path.dirname(dpath)                      # parent directory
 if dpath not in sys.path:                           # add to path
         sys.path.append(dpath)
 
-# Local imports
-import server.config as config
-
 # Globals
+config = None
 auth_password = None            # authentication password
 auth_secret = None              # JWT decode/encode key
 auth_special_user = None        # special user with no cookie expiration
@@ -35,7 +33,9 @@ def read_file(fpath):
 
 # ============================== Initialization ============================== #
 # Initialization function for authentication functionality.
-def auth_init():
+def auth_init(conf):
+    global config
+    config = conf
     # attempt to read the password key file
     global auth_password
     auth_password_fpath = os.path.join(config.key_dpath, config.auth_key_fname)

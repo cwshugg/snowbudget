@@ -16,12 +16,21 @@ if dpath not in sys.path:                           # add to path
 # Local imports
 from server.app import app
 from server.auth import auth_init
-import server.config as config
+from server.config import Config
 
 # Main function
 def main():
-    # initialize any needed functionality then run the flask app
-    auth_init()
+    # expect the first argument to be a config file path
+    if len(sys.argv) < 2:
+        sys.stderr.write("Usage: %s /path/to/server-config.json\n" % sys.argv[0])
+        sys.exit(0)
+
+    # initialize any needed functionality
+    config = Config(sys.argv[1])
+    app.config["server_config_obj"] = config
+    auth_init(config)
+
+    # run the flask app, with or without HTTPS
     if config.certs_enabled:
         app.run(config.server_addr, port=config.server_port,
                 ssl_context=(os.path.join(config.certs_dpath, config.certs_cert_fname),
