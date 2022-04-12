@@ -29,12 +29,15 @@ class Config:
             ["server_home_fname", str, "missing server_home_fname string"],
             ["server_home_auth_fname", str, "missing server_home_auth_fname string"],
             ["server_public_files", list, "missing server_public_files list"],
+            ["server_secret_key", str, "missing server_secret_key string"],
             # budget-related configs
             ["sb_config_fpath", str, "missing sb_config_fpath string"],
             # key-related configs
-            ["key_dpath", str, "missing key_dpath string"],
-            ["auth_key_fname", str, "missing auth_key_fname string"],
-            ["auth_jwt_key_fname", str, "missing auth_jwt_key_fname string"],
+            ["auth_key", str, "missing auth_key string"],
+            ["auth_jwt_key", str, "missing auth_jwt_key string"],
+            # notification-related configs
+            ["notif_email_username", str, "missing notif_email_username string"],
+            ["notif_email_password", str, "missing notif_email_password string"],
             # certs/HTTPS-related configs
             ["certs_enabled", bool, "missing certs_enabled boolean"],
             ["certs_dpath", str, "missing certs_dpath string"],

@@ -8,7 +8,7 @@
 #   Connor Shugg
 
 # Includes and Flask setup
-from flask import Flask, request, Response, send_from_directory
+from flask import Flask, request, Response, send_from_directory, session
 import csv
 import json
 import os
@@ -24,6 +24,8 @@ if dpath not in sys.path:                           # add to path
 # Local imports
 from server.auth import auth_check_login, auth_make_cookie, auth_check_cookie, \
                         auth_cookie_name
+from server.log import log_write
+from server.users import User
 from lib.config import Config
 from lib.budget import Budget
 from lib.bclass import BudgetClass, BudgetClassType
@@ -31,19 +33,9 @@ from lib.transaction import Transaction
 
 # Flask setup
 app = Flask(__name__)
-config = None # set dynamically later
+config = None   # main server config
 
 # ============================= Helper Functions ============================= #
-# Used to initialize anything that hasn't already been initialized.
-def check_init():
-    # only initialize once
-    global config
-    if config != None:
-        return
-   
-    # retrieve the config from the app's config
-    config = app.config["server_config_obj"]
-
 # Used to retrieve a fresh Budget object from the configuration path stored in
 # the server's config module.
 def get_budget():
@@ -94,7 +86,7 @@ def check_json_fields(jdata, expects):
 
 # Returns request JSON data, None if none was provided, or an Exception if
 # something went wrong trying to parse the data.
-def get_request_json(request):
+def parse_request_json(request):
     try:
         rdata = request.get_data()
         if len(rdata) == 0:
@@ -103,15 +95,79 @@ def get_request_json(request):
     except Exception as e:
         return Exception("FAILURE: %s" % e)
 
-# Helper function that extracts the 'Cookie' header and determines if the
-# request sender is authenticated.
-def is_authenticated(request):
-    return auth_check_cookie(request.headers.get("Cookie"))
+# References the pre-processed session field.
+def get_request_json():
+    return session["jdata"]
 
 # Takes in a file path local to the server's root directory and appends it to
 # the path tot he root directory before passing it into send_file()
 def serve_file(fpath):
     return send_from_directory(config.server_root_dpath, fpath, etag=False)
+
+# Takes in the given session and retrieves the user object. Returns None if one
+# isn't found or valid.
+def get_user(ses):
+    if "user" in ses:
+        return User.from_json(ses["user"])
+    return None
+
+# =============================== Notification =============================== #
+# Searches through the JSON data and determines if a special "notify" field is
+# set to 'true'. If so, this function returns true and sets the the correct
+# field in in the given session.
+def update_notify(session, jdata):
+    should_notify = "notify" in jdata and jdata["notify"]
+    session["user_notify"] = should_notify
+    return should_notify
+
+# Returns true if the session's notify field is set to true.
+def check_notify(session):
+    return "user_notify" in session and session["user_notify"]
+
+
+# ============================== Pre-Processing ============================== #
+@app.before_first_request
+def server_init():
+    # retrieve the config from the app's config and set up the log
+    global config
+    config = app.config["server_config_obj"]
+
+# Invoked before an endpoint handler is called.
+# Resource: https://pythonise.com/series/learning-flask/python-before-after-request
+@app.before_request
+def pre_process():
+    pass
+    # extract JSON data, if any
+    jdata = parse_request_json(request)
+    session["jdata"] = jdata
+    
+    # check for authentication
+    user = auth_check_cookie(request.headers.get("Cookie"))
+    session["user"] = user.to_json()
+    if user != None:
+        log_write("User \"%s\" is making a request (privilege: %d)." %
+                  (user.username, user.privilege))
+
+    # initialize the "notify" field
+    if jdata != None:
+        update_notify(session, session["jdata"])
+
+
+# ============================= Post-Processing ============================== #
+# Used to post-process successful requests.
+@app.after_request
+def post_process(response):
+    if check_notify(session):
+        user = get_user(session)
+        log_write("Notification requested. Sending message to %s." % user.email)
+    return response
+
+# Used to post-process failed requests. (Typically triggered when an exception
+# is thrown.)
+@app.teardown_request
+def post_process_error(error=None):
+    if error != None:
+        log_write("ERROR: %s" % error)
 
 
 # ==================== Root and Authentication Endpoints ===================== #
@@ -119,18 +175,18 @@ def serve_file(fpath):
 # message to the client.
 @app.route("/")
 def endpoint_root():
-    check_init()
+    user = get_user(session)
     # if the user is authenticated, we'll serve them the authenticated home
     # page. If not, we'll serve them the public one
-    if is_authenticated(request):
+    if user != None:
         return serve_file(config.server_home_auth_fname)
     return serve_file(config.server_home_fname)
 
 # Static file handling.
 @app.route("/<path:fpath>")
 def endpoint_static_file(fpath):
-    check_init()
-    is_auth = is_authenticated(request)
+    user = get_user(session)
+    is_auth = user != None
     # special case: if index.html was requested, check authentication and
     # replace it with the authenticated version
     if fpath == config.server_home_fname and is_auth:
@@ -148,7 +204,6 @@ def endpoint_static_file(fpath):
 # Used to attempt a login.
 @app.route("/auth/login", methods=["POST"])
 def endpoint_auth_login():
-    check_init()
     # attempt to parse the login data and verify the login attempt
     username = auth_check_login(request.get_data())
     if username != None:
@@ -162,13 +217,11 @@ def endpoint_auth_login():
         return make_response_json(msg="Authentication succeeded. Hello, %s." % username,
                                   rheaders={"Set-Cookie": cookie_str})
     else:
-        return make_response_json(success=False,
-                                  msg="Authentication failed.")
+        return make_response_json(success=False, msg="Authentication failed.")
 
 # Authentication-checking endpoint.
 @app.route("/auth/check", methods=["GET"])
 def endpoint_auth_check():
-    check_init()
     # look for the correct cookie
     auth = auth_check_cookie(request.headers.get("Cookie"))
     if auth:
@@ -181,8 +234,8 @@ def endpoint_auth_check():
 # Used to retrieve ALL budget classes.
 @app.route("/get/all", methods = ["GET"])
 def endpoint_get_all():
-    check_init()
-    if not is_authenticated(request):
+    user = get_user(session)
+    if user == None:
         return make_response_json(rstatus=404)
 
     # invoke the API to retrieve *all* budget classes as a combined JSON object
@@ -193,12 +246,12 @@ def endpoint_get_all():
 # Helper function for the /get methods that takes in the ID field to expect in
 # the JSON request body.
 def get_helper(field):
-    check_init()
-    if not is_authenticated(request):
+    user = get_user(session)
+    if user == None:
         return make_response_json(rstatus=404)
 
     # extract the json data in the request body
-    jdata = get_request_json(request)
+    jdata = get_request_json()
     if type(jdata) == Exception:
         return make_response_json(rstatus=400, msg="Failed to parse request body.")
     elif jdata == None:
@@ -226,13 +279,11 @@ def get_helper(field):
 # Used to retrieve a budget class. Expects a class ID.
 @app.route("/get/class", methods = ["POST"])
 def endpoint_get_class():
-    check_init()
     return get_helper("class_id")
 
 # Used to retrieve a transaction. Expects a transaction ID.
 @app.route("/get/transaction", methods = ["POST"])
 def endpoint_get_transaction():
-    check_init()
     return get_helper("transaction_id")
 
 
@@ -240,12 +291,12 @@ def endpoint_get_transaction():
 # Helper function used for the searcher endpoints. Takes in the 'mode' to
 # search on ("class" or "transaction")
 def search_helper(mode):
-    check_init()
-    if not is_authenticated(request):
+    user = get_user(session)
+    if user == None:
         return make_response_json(rstatus=404)
 
     # extract the json data in the request body
-    jdata = get_request_json(request)
+    jdata = get_request_json()
     if type(jdata) == Exception:
         return make_response_json(rstatus=400, msg="Failed to parse request body.")
     elif jdata == None:
@@ -280,13 +331,11 @@ def search_helper(mode):
 # classes.
 @app.route("/search/class", methods = ["POST"])
 def endpoint_search_class():
-    check_init()
     return search_helper("class")
 
 # Takes in some string as input and uses it to search for matching transactions.
 @app.route("/search/transaction", methods = ["POST"])
 def endpoint_search_transaction():
-    check_init()
     return search_helper("transaction")
 
 
@@ -294,12 +343,12 @@ def endpoint_search_transaction():
 # Used to create a new budget class.
 @app.route("/create/class", methods = ["POST"])
 def endpoint_create_class():
-    check_init()
-    if not is_authenticated(request):
+    user = get_user(session)
+    if user == None:
         return make_response_json(rstatus=404)
 
     # extract the json data in the request body
-    jdata = get_request_json(request)
+    jdata = get_request_json()
     if type(jdata) == Exception:
         return make_response_json(rstatus=400, msg="Failed to parse request body.")
     elif jdata == None:
@@ -335,17 +384,17 @@ def endpoint_create_class():
         return make_response_json(msg="Class created.", jdata=bclass.to_json())
     except Exception as e:
         return make_response_json(success=False,
-                                  msg="Failed to create the class: %s" % e)
+                                     msg="Failed to create the class: %s" % e)
 
 # Used to create a new transaction.
 @app.route("/create/transaction", methods = ["POST"])
 def endpoint_create_transaction():
-    check_init()
-    if not is_authenticated(request):
+    user = get_user(session)
+    if user == None:
         return make_response_json(rstatus=404)
 
     # extract the json data in the request body
-    jdata = get_request_json(request)
+    jdata = get_request_json()
     if type(jdata) == Exception:
         return make_response_json(rstatus=400, msg="Failed to parse request body.")
     elif jdata == None:
@@ -369,7 +418,6 @@ def endpoint_create_transaction():
     try:
         ts = datetime.fromtimestamp(jdata["timestamp"])
     except Exception as e:
-        raise e
         return make_response_json(success=False, msg="Invalid JSON fields.")
 
     # create a transaction struct and pass it to the API
@@ -383,12 +431,12 @@ def endpoint_create_transaction():
 # A message is sent back if a matching class can't be found.
 @app.route("/create/transaction/search", methods = ["POST"])
 def endpoint_create_transaction_search():
-    check_init()
-    if not is_authenticated(request):
+    user = get_user(session)
+    if user == None:
         return make_response_json(rstatus=404)
 
     # extract the json data in the request body
-    jdata = get_request_json(request)
+    jdata = get_request_json()
     if type(jdata) == Exception:
         return make_response_json(rstatus=400, msg="Failed to parse request body.")
     elif jdata == None:
@@ -428,12 +476,12 @@ def endpoint_create_transaction_search():
 # ================================= Deletion ================================= #
 # Helper function for the two delete endpoints.
 def delete_helper(field):
-    check_init()
-    if not is_authenticated(request):
+    user = get_user(session)
+    if user == None:
         return make_response_json(rstatus=404)
 
     # extract the json data in the request body
-    jdata = get_request_json(request)
+    jdata = get_request_json()
     if type(jdata) == Exception:
         return make_response_json(rstatus=400, msg="Failed to parse request body.")
     elif jdata == None:
@@ -474,13 +522,11 @@ def delete_helper(field):
 # Used to delete a class.
 @app.route("/delete/class", methods = ["POST"])
 def endpoint_delete_class():
-    check_init()
     return delete_helper("class_id")
 
 # Used to delete a transaction.
 @app.route("/delete/transaction", methods = ["POST"])
 def endpoint_delete_transaction():
-    check_init()
     return delete_helper("transaction_id")
 
 
@@ -488,12 +534,12 @@ def endpoint_delete_transaction():
 # Used to edit an existing budget class.
 @app.route("/edit/class", methods = ["POST"])
 def endpoint_edit_class():
-    check_init()
-    if not is_authenticated(request):
+    user = get_user(session)
+    if user == None:
         return make_response_json(rstatus=404)
 
     # extract the json data in the request body
-    jdata = get_request_json(request)
+    jdata = get_request_json()
     if type(jdata) == Exception:
         return make_response_json(rstatus=400, msg="Failed to parse request body.")
     elif jdata == None:
@@ -556,12 +602,12 @@ def endpoint_edit_class():
 # Used to edit an existing transaction.
 @app.route("/edit/transaction", methods = ["POST"])
 def endpoint_edit_transaction():
-    check_init()
-    if not is_authenticated(request):
+    user = get_user(session)
+    if user == None:
         return make_response_json(rstatus=404)
 
     # extract the json data in the request body
-    jdata = get_request_json(request)
+    jdata = get_request_json()
     if type(jdata) == Exception:
         return make_response_json(rstatus=400, msg="Failed to parse request body.")
     elif jdata == None:

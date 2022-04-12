@@ -15,6 +15,9 @@ dpath = os.path.dirname(dpath)                      # parent directory
 if dpath not in sys.path:                           # add to path
         sys.path.append(dpath)
 
+# Local imports
+from server.log import log_write
+
 # Globals
 config = None
 auth_password = None            # authentication password
@@ -35,18 +38,13 @@ def read_file(fpath):
 def auth_init(conf):
     global config
     config = conf
-    # attempt to read the password key file
-    global auth_password
-    auth_password_fpath = os.path.join(config.key_dpath, config.auth_key_fname)
-    auth_password = read_file(auth_password_fpath)
-    
-    # attempt to read the JWT encryption key file
-    global auth_secret
-    auth_secret_fpath = os.path.join(config.key_dpath, config.auth_jwt_key_fname)
-    auth_secret = read_file(auth_secret_fpath)
+    # retrieve the correct config entries
+    global auth_password, auth_secret
+    auth_password = conf.auth_key
+    auth_secret = conf.auth_jwt_key
 
-    print("Authentication password:   '%s'" % auth_password)
-    print("JWT password:              '%s'" % auth_secret)
+    log_write("Authentication password:   '%s'" % auth_password)
+    log_write("JWT password:              '%s'" % auth_secret)
 
 # ========================= Authentication Checking ========================= #
 # Checks a login attempt and returns the User object corresponding to the
@@ -74,18 +72,20 @@ def auth_check_login(data):
         # make sure the username is in our database
         for u in config.users:
             if result["username"] == u.username:
+                log_write("User \"%s\" logged in." % u.username)
                 return u
         # if no matching user was found, return
         return None
     # on exception, print and return
     except Exception as e:
-        print("Failed to parse JSON contents: %s" % e)
+        log_write("Failed to parse JSON contents: %s" % e)
         return None
 
-# Checks for a specific cookie as proof of authentication.
+# Checks for a specific cookie as proof of authentication. Returns the User
+# object representing the user that's making the request.
 def auth_check_cookie(cookie):
     if cookie == None:
-        return False
+        return None
     
     # split into individual cookies
     cookies = cookie.split(";")
@@ -101,15 +101,15 @@ def auth_check_cookie(cookie):
     
     # if parsing failed, or we never found the cookie, return
     if result == None:
-        return False
+        return None
 
     # check for the correct fields in the decoded JWT
     if "iat" not in result or "exp" not in result or "sub" not in result:
-        return False
+        return None
     # check the issued-at time for the token
     now = int(datetime.now().timestamp())
     if result["iat"] > now:
-        return False
+        return None
     # make sure the 'sub' is one of our registered users
     user = None
     for u in config.users:
@@ -117,18 +117,15 @@ def auth_check_cookie(cookie):
             user = u
             break
     if user == None:
-        return False
+        return None
 
     # check the expiration time for the token, but only if the user doesn't
     # have special privileges
     if user.privilege > 0 and result["exp"] <= now:
-        return False
-
-    if user.privilege == 0:
-        print("Root user is making a request.")
-
+        return None
+    
     # if we passed all the above checks, they must be authenticated
-    return True
+    return user
 
 
 # ================================ JWT Work ================================= #

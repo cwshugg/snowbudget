@@ -12,12 +12,15 @@
         "assets/favicon.ico",
         "assets/ubuntu.ttf"
     ],
-    
+    "server_secret_key": "super_secret...",
+
     "sb_config_fpath": "/home/snowmiser/snowbudget/config/example.json",
     
-    "key_dpath": "/home/snowmiser/snowbudget/keys",
-    "auth_key_fname": "auth_password.key",
-    "auth_jwt_key_fname": "auth_jwt.key",
+    "auth_key": "some_key",
+    "auth_jwt_key": "some_other_key",
+
+    "notif_email_username": "anemailyouwanttouse@domain",
+    "notif_email_password": "passwordtoyouremail",
     
     "certs_enabled": true,
     "certs_dpath": "/etc/letsencrypt/live/beacon.shugg.dev/",
