@@ -36,8 +36,8 @@ class Config:
             ["auth_key", str, "missing auth_key string"],
             ["auth_jwt_key", str, "missing auth_jwt_key string"],
             # notification-related configs
-            ["notif_email_username", str, "missing notif_email_username string"],
-            ["notif_email_password", str, "missing notif_email_password string"],
+            ["ifttt_webhook_key", str, "missing ifttt_webhook_key string"],
+            ["notif_webhook_event", str, "missing notify_webhook_event string"],
             # certs/HTTPS-related configs
             ["certs_enabled", bool, "missing certs_enabled boolean"],
             ["certs_dpath", str, "missing certs_dpath string"],

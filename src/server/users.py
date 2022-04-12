@@ -10,6 +10,10 @@ class User:
         self.username = username    # user's name
         self.email = email          # user's email (for notifications)
         self.privilege = privilege  # privilege level (0 being lowest)
+    
+    # String representation of a user.
+    def __str__(self):
+        return self.username
 
     # ================================= JSON ================================= #
     # Used to convert the current User object to JSON.
@@ -24,6 +28,8 @@ class User:
     # Used to convert JSON into a User object.
     @staticmethod
     def from_json(jdata):
+        if jdata == None:
+            return None
          # build a list of expected JSON fields and assert they exist
         expected = [
             ["username", str, "each user JSON must have a \"username\" string."],

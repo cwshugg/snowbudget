@@ -3,31 +3,30 @@
 #   Connor Shugg
 
 # Imports
-import smtplib
+import requests
 
 # Globals
-mailserver = None
-notif_username = None
-notif_password = None
+config = None
+webhook_url = "https://maker.ifttt.com/trigger/%s/json/with/key/%s"
 
 # Initializes the notification code, given the server's SMTP username and
 # passsword.
 def notif_init(conf):
-    global mailserver, notif_username, notif_password
-    # create out SSL connection and attempt to log in
-    mailserver = smtplib.SMTP_SSL("smtp.gmail.com", 465)
-#    mailserver.login(conf.notif_email_username,
-#                     conf.notif_email_password)
-# TODO FIX
-    # save credentials
-    notif_username = conf.notif_email_username
-    notif_password = conf.notif_email_password
-
-# Tears down the connection to the SMTP server.
-def notif_deinit():
-    mailserver.quit()
+    global webhook_url
+    webhook_url = webhook_url % (conf.notif_webhook_event, conf.ifttt_webhook_key)
 
 # Function to send a string message to an email address.
 def notif_send_email(address, message):
-    mailserver.sendmail(notif_username, address, message)
+    # put together a JSON object to send to my IFTTT event.
+    jdata = {
+        "to": address,
+        "subject": "snwbdgt",
+        "content": message
+    }
+    # attempt to send the request
+    try:
+        r = requests.post(webhook_url, data=jdata)
+        return None
+    except Exception as e:
+        return e
 

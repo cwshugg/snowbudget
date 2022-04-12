@@ -26,6 +26,7 @@ from server.auth import auth_check_login, auth_make_cookie, auth_check_cookie, \
                         auth_cookie_name
 from server.log import log_write
 from server.users import User
+from server.notif import notif_send_email
 from lib.config import Config
 from lib.budget import Budget
 from lib.bclass import BudgetClass, BudgetClassType
@@ -60,6 +61,9 @@ def make_response_json(jdata={}, msg="", success=True, rstatus=200, rheaders={})
     if jdata != {}:
         alldata["payload"] = jdata
     resp = Response(response=json.dumps(alldata), status=rstatus)
+    
+    # store the JSON data in the session for post-processing
+    session["response_jdata"] = alldata
     
     # set all given headers, as well as the content type
     for key in rheaders:
@@ -143,7 +147,7 @@ def pre_process():
     
     # check for authentication
     user = auth_check_cookie(request.headers.get("Cookie"))
-    session["user"] = user.to_json()
+    session["user"] = None if user == None else user.to_json()
     if user != None:
         log_write("User \"%s\" is making a request (privilege: %d)." %
                   (user.username, user.privilege))
@@ -157,9 +161,24 @@ def pre_process():
 # Used to post-process successful requests.
 @app.after_request
 def post_process(response):
+    jdata = None
+    if "response_jdata" in session:
+        jdata = session["response_jdata"]
+    #print(type(jdata))
+
     if check_notify(session):
         user = get_user(session)
-        log_write("Notification requested. Sending message to %s." % user.email)
+        # retrieve response JSON data and build a message string
+        msg = "Handled a request."
+        if jdata != None:
+            msg = ""
+            if "success" in jdata:
+                msg += "[%s] " % ("success" if jdata["success"] else "failure")
+            if "message" in jdata:
+                msg += "%s" % jdata["message"]
+        # send the notification
+        log_write("Notification requested. Sending message \"%s\" to %s." % (msg, user.email))
+        notif_send_email(user.email, msg)
     return response
 
 # Used to post-process failed requests. (Typically triggered when an exception

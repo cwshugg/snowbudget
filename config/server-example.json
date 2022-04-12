@@ -18,9 +18,9 @@
     
     "auth_key": "some_key",
     "auth_jwt_key": "some_other_key",
-
-    "notif_email_username": "anemailyouwanttouse@domain",
-    "notif_email_password": "passwordtoyouremail",
+    
+    "ifttt_webhook_key": "yourIFTTTwebhookkey",
+    "notif_webhook_event": "yourIFTTTwebhookevent",
     
     "certs_enabled": true,
     "certs_dpath": "/etc/letsencrypt/live/beacon.shugg.dev/",
