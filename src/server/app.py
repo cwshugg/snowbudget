@@ -217,7 +217,9 @@ def endpoint_static_file(fpath):
 
     # otherwise, check authentication before serving the file
     if not is_auth:
-        return make_response_json(rstatus=404)
+        #return make_response_json(rstatus=404)
+        # server the non-auth home page rather than 404
+        return serve_file(config.server_home_fname)
     return serve_file(fpath)
 
 # Used to attempt a login.

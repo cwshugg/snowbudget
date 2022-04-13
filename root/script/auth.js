@@ -36,8 +36,8 @@ async function btn_auth_click()
     let text = await response.text();
     let jdata = JSON.parse(text);
     
-    // on success, reload the home page
+    // on success, reroute to the home page
     if (jdata.success)
-    { window.location.replace(url + "/"); }
+    { window.location.replace(url + "/home.html"); }
 }
 
