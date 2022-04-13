@@ -84,7 +84,17 @@ def get_url_parameter(args, key):
 # Returns false otherwise.
 def check_json_fields(jdata, expects):
     for e in expects:
-        if e[0] not in jdata or type(jdata[e[0]]) != e[1]:
+        # if the key isn't present, return false
+        if e[0] not in jdata:
+            return False
+        # if the second entry isn't a list, make it so, then iterate through
+        # all possible types and return false if none match
+        types = [e[1]] if type(e[1]) != list else e[1]
+        type_match = False
+        for t in types:
+            if type(jdata[e[0]]) == t:
+                type_match = True
+        if not type_match:
             return False
     return True
 
@@ -170,15 +180,15 @@ def post_process(response):
         user = get_user(session)
         # retrieve response JSON data and build a message string
         msg = "Handled a request."
+        sub = ""
         if jdata != None:
-            msg = ""
             if "success" in jdata:
-                msg += "[%s] " % ("success" if jdata["success"] else "failure")
+                sub = "[%s]" % ("success" if jdata["success"] else "failure")
             if "message" in jdata:
-                msg += "%s" % jdata["message"]
+                msg = "%s" % jdata["message"]
         # send the notification
         log_write("Notification requested. Sending message \"%s\" to %s." % (msg, user.email))
-        notif_send_email(user.email, msg)
+        notif_send_email(user.email, msg, subject=sub)
     return response
 
 # Used to post-process failed requests. (Typically triggered when an exception
@@ -422,10 +432,11 @@ def endpoint_create_transaction():
         return make_response_json(rstatus=400, msg="Missing request body.")
 
     # we're expecting a class ID *and* other fields within the JSON data
-    expect = [["class_id", str], ["price", float], ["vendor", str],
+    expect = [["class_id", str], ["price", [float, int]], ["vendor", str],
               ["description", str], ["timestamp", int]]
     if not check_json_fields(jdata, expect):
         return make_response_json(success=False, msg="Missing JSON fields.")
+    jdata["price"] = float(jdata["price"]) # make sure the price is a float
 
     # first, search for the class, given its ID (make a shallow copy)
     b = get_budget()
@@ -464,10 +475,11 @@ def endpoint_create_transaction_search():
         return make_response_json(rstatus=400, msg="Missing request body.")
 
     # we're expecting a class query *and* other fields within the JSON data
-    expect = [["query", str], ["price", float], ["vendor", str],
+    expect = [["query", str], ["price", [float, int]], ["vendor", str],
               ["description", str], ["timestamp", int]]
     if not check_json_fields(jdata, expect):
         return make_response_json(success=False, msg="Missing JSON fields.")
+    jdata["price"] = float(jdata["price"]) # make sure the price is a float
 
     # first, search for the class, given its ID (make a shallow copy)
     b = get_budget()

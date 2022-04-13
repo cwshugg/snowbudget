@@ -16,11 +16,11 @@ def notif_init(conf):
     webhook_url = webhook_url % (conf.notif_webhook_event, conf.ifttt_webhook_key)
 
 # Function to send a string message to an email address.
-def notif_send_email(address, message):
+def notif_send_email(address, message, subject=""):
     # put together a JSON object to send to my IFTTT event.
     jdata = {
         "to": address,
-        "subject": "snwbdgt",
+        "subject": "snwbdgt %s" % subject,
         "content": message
     }
     # attempt to send the request
