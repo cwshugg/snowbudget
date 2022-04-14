@@ -2,9 +2,6 @@
 //
 //      Connor Shugg
 
-// Other globals
-const url = window.location.protocol + "//" + window.location.host;
-
 // Document globals
 const bclass_expense_container = document.getElementById("bclass_expenses");
 const bclass_income_container = document.getElementById("bclass_income");
@@ -328,12 +325,16 @@ async function budget_classes_refresh(bclasses)
 // Main initializer for the entire page.
 async function ui_init()
 {
+    diagnostics_add_message("Contacting server...");
     let data = await retrieve_data();
     if (!data)
     {
-        console.log("Failed to retrieve data.");
+        // show an error message
+        diagnostics_clear();
+        diagnostics_add_error("Failed to retrieve data from server.");
         return;
     }
+    diagnostics_clear();
 
     // extract the payload and sort them (budget classes) by name
     let bclasses = data.payload;

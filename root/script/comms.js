@@ -2,6 +2,9 @@
 //
 //      Connor Shugg
 
+// Get the server's URL
+const url = window.location.protocol + "//" + window.location.host;
+
 // Takes in an endpoint string, HTTP method, and JSON message body and sends a
 // HTTP request to the server.
 async function send_request(endpoint, method, jdata)

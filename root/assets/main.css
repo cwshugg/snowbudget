@@ -84,14 +84,47 @@
 }
 
 /********************************** Inputs ***********************************/
+.input-container
+{
+    max-width: 750px;
+}
+
 .input-main
 {
     font-family: var(--font1);
-    background-color: var(--color-bg3);
+    background-color: var(--color-bg1);
     color: var(--color-text1);
     border: none;
-    padding: 4px;
-    margin: 4px;
+    border-radius: 0;
+    border-bottom: 1px solid var(--color-acc1);
+    padding: 8px;
+    margin: 8px;
+    width: 100%;
+}
+
+.input-main:focus
+{
+    background-color: var(--color-bg1);
+    color: var(--color-text1);
+    outline: none;
+}
+
+.dropdown-main
+{
+    font-family: var(--font1);
+    background-color: var(--color-bg1);
+    color: var(--color-text1);
+    border: none;
+    border-radius: 0;
+    border-bottom: 1px solid var(--color-acc1);
+    padding: 8px;
+    margin: 8px;
+    width: 100%;
+}
+
+.dropdown-main:focus
+{
+    outline: none;
 }
 
 /********************************* Buttons ***********************************/
@@ -251,9 +284,23 @@ button
         font-size: 36px;
     }
 
+    .input-container
+    {
+        max-width: 1250px;
+    }
+
     .input-main
     {
-        font-size: 30px;
+        font-size: 36px;
+        padding: 12px;
+        margin: 12px;
+    }
+
+    .dropdown-main
+    {
+        font-size: 36px;
+        padding: 12px;
+        margin: 12px;
     }
 
     .button-main

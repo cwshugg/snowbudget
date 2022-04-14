@@ -18,35 +18,45 @@
                 </h1>
             </div>
 
-            <!-- text boxes -->
-            <div id="addt_inputs">
+            <!-- diagnostic messages -->
+            <div id="diagnostics">
+                <!-- filled dynamically on error -->
+            </div>
+
+            <!-- input fields -->
+            <div class="input-container">
                 <!-- price input -->
                 <div>
-                    <p>Price</p>
-                    <input class="input-main"></input>
+                    <!--<label for="tprice">Price</label>-->
+                    <input id="tprice" class="input-main" placeholder="Price"
+                           type="number" step="any" min="0.01"></input>
                 </div>
                 <!-- vendor input -->
                 <div>
-                    <p>Vendor</p>
-                    <input class="input-main"></input>
+                    <!--<label for="tvendor">Vendor</label>-->
+                    <input id="tvendor" class="input-main" placeholder="Vendor"></input>
                 </div>
                 <!-- description input -->
                 <div>
-                    <p>Description</p>
-                    <input class="input-main"></input>
+                    <!--<label for"tdesc">Description</label>-->
+                    <input id="tdesc" class="input-main" placeholder="Description"></input>
+                </div>
+                <select id="tclass" class="dropdown-main" placeholder="Budget Class">
+                    <!-- nothing here - filled dynamically -->
+                </select>
+
+                <!-- buttons -->
+                <div id="addt_menu">
+                    <div class="button-container">
+                        <button id="btn_cancel" class="button-main">Back</button>
+                        <button id="btn_save" class="button-main">Save</button>
+                    </div>
                 </div>
             </div>
     
-            <!-- menu -->
-            <div id="addt_menu">
-                <div class="button-container">
-                    <button id="btn_cancel" class="button-main">Cancel</button>
-                    <button id="btn_save" class="button-main">Save</button>
-                </div>
-            </div>
-            
             <!-- JS imports -->
             <script type="text/javascript" src="script/helpers.js"></script>
+            <script type="text/javascript" src="script/diagnostics.js"></script>
             <script type="text/javascript" src="script/comms.js"></script>
             <script type="text/javascript" src="script/addt.js"></script>
         </div>

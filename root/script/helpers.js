@@ -2,6 +2,8 @@
 //
 //      Connor Shugg
 
+
+// ============================== Conversions =============================== //
 // Takes in a float value and returns a US-dollar-formatted string.
 function float_to_dollar_string(value)
 {
@@ -24,6 +26,8 @@ function timestamp_to_date_string(value)
     return str;
 }
 
+
+// ============================= Budget Classes ============================= //
 // Returns true if the given class is an expense class.
 function bclass_is_expense(bclass)
 {
