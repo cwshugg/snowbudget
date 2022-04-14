@@ -23,7 +23,7 @@ function diagnostics_add_error(message)
 function diagnostics_add_message(message)
 {
     let elem = document.createElement("p");
-    elem.innerHTML = "<b style=\"color: yellow\">" + message + "</b>";
+    elem.innerHTML = "<b>" + message + "</b>";
     diagnostic_div.appendChild(elem);
 }
 

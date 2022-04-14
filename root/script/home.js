@@ -32,8 +32,10 @@ function click_transaction_row(ev)
         return;
     }
 
+    // put the ID as a URL parameter and navigate to the edit page
     let transaction_id = tr.id;
-    console.log("TODO: OPEN TRANSACTION: " + transaction_id);
+    let edit_url = "editt.html?transaction_id=" + transaction_id;
+    window.location.replace(edit_url);
 }
 
 // Invoked when the 'add transaction' class is clicked.

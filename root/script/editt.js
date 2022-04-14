@@ -1,10 +1,10 @@
-// JS for the 'add transaction' page.
+// JS for the 'edit transaction' page.
 //
 //      Connor Shugg
 
 // Document globals
 const addt_btn_cancel = document.getElementById("btn_cancel");
-const addt_btn_save = document.getElementById("btn_save");
+const addt_btn_update = document.getElementById("btn_update");
 const addt_input_price = document.getElementById("tprice");
 const addt_input_vendor = document.getElementById("tvendor");
 const addt_input_desc = document.getElementById("tdesc");
@@ -17,7 +17,7 @@ function addt_click_cancel()
 }
 
 // Invoked when the 'save' button is clicked.
-function addt_click_save()
+function addt_click_update()
 {
     diagnostics_clear();
 
@@ -68,10 +68,11 @@ function addt_click_save()
 
 // ============================= Initialization ============================= //
 // Asynchronously retrieves the back-end data and updates the display.
-async function addt_ui_init()
+async function addt_ui_init(tid)
 {
     diagnostics_add_message("Contacting server...");
-    let data = await retrieve_data()
+    const jdata = {"transaction_id": tid};
+    let data = await send_request("/get/transaction", "POST", jdata);
     if (!data)
     {
         // show an error message
@@ -81,9 +82,13 @@ async function addt_ui_init()
     }
     diagnostics_clear();
 
+    console.log(data.payload);
+
     // enable the buttons now that we have data
-    addt_btn_save.disabled = false;
+    addt_btn_update.disabled = false;
     addt_btn_cancel.disabled = false;
+
+    return; // TODO TODO TODO TODO REMOVE
 
     // sort the budget classes
     let bclasses = data.payload;
@@ -124,8 +129,18 @@ async function addt_ui_init()
 // Window initialization function
 window.onload = function()
 {
+    // retrieve the transaction ID from the URL
+    const params = new URLSearchParams(window.location.search);
+    if (!params.has("transaction_id"))
+    {
+        diagnostics_add_error("Failed to find the \"transaction_id\" in the URL.");
+        return;
+    }
+    const tid = params.get("transaction_id");
+
+    // set up button clicks and initialize the UI
     addt_btn_cancel.addEventListener("click", addt_click_cancel);
-    addt_btn_save.addEventListener("click", addt_click_save);
-    addt_ui_init();
+    addt_btn_update.addEventListener("click", addt_click_update);
+    addt_ui_init(tid);
 }
 

@@ -1,4 +1,3 @@
-<!-- home HTML page for documentation -->
 <html lang="en" class="extension-main">
     <!-- head and imports -->
     <head>
@@ -14,7 +13,7 @@
             <!-- title -->
             <div>
                 <h1 class="color-acc2">
-                    <span class="color-acc1">[</span>sb.add.transaction<span class="color-acc1">]</span>
+                    <span class="color-acc1">[</span>sb.edit.transaction<span class="color-acc1">]</span>
                 </h1>
             </div>
 
@@ -27,18 +26,15 @@
             <div class="input-container">
                 <!-- price input -->
                 <div>
-                    <!--<label for="tprice">Price</label>-->
                     <input id="tprice" class="input-main" placeholder="Price"
                            type="number" step="any" min="0.01"></input>
                 </div>
                 <!-- vendor input -->
                 <div>
-                    <!--<label for="tvendor">Vendor</label>-->
                     <input id="tvendor" class="input-main" placeholder="Vendor"></input>
                 </div>
                 <!-- description input -->
                 <div>
-                    <!--<label for"tdesc">Description</label>-->
                     <input id="tdesc" class="input-main" placeholder="Description"></input>
                 </div>
                 <select id="tclass" class="dropdown-main" placeholder="Budget Class">
@@ -49,7 +45,7 @@
                 <div id="addt_menu">
                     <div class="button-container">
                         <button id="btn_cancel" class="button-main" disabled>Back</button>
-                        <button id="btn_save" class="button-main" disabled>Save</button>
+                        <button id="btn_update" class="button-main" disabled>Update</button>
                     </div>
                 </div>
             </div>
@@ -58,7 +54,7 @@
             <script type="text/javascript" src="script/helpers.js"></script>
             <script type="text/javascript" src="script/diagnostics.js"></script>
             <script type="text/javascript" src="script/comms.js"></script>
-            <script type="text/javascript" src="script/addt.js"></script>
+            <script type="text/javascript" src="script/editt.js"></script>
         </div>
     </body>
 </html>
