@@ -673,18 +673,24 @@ def endpoint_edit_transaction():
     
     # check to make sure the types of any present fields are correct
     changes = 0
-    expect = [["price", float], ["vendor", str], ["description", str]]
+    expect = [["price", [float, int]], ["vendor", str], ["description", str]]
     for e in expect:
         key = e[0]
         if key in jdata:
-            if type(jdata[key]) != e[1]:
+            types = e[1] if type(e[1]) == list else [e[1]]
+            type_match = False
+            for ty in types:
+                if type(jdata[key]) == ty:
+                    type_match = True
+            # if no match was found, return an error
+            if not type_match:
                 return make_response_json(success=False, msg="Invalid JSON fields.")
         else:
             jdata[key] = None
     
     # make updates to the transaction where appropriate
     if jdata["price"] != None:
-        t.price = jdata["price"]
+        t.price = float(jdata["price"])
         changes += 1
     if jdata["vendor"] != None:
         t.vendor = jdata["vendor"]
