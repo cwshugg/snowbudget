@@ -36,8 +36,13 @@ function addt_click_save()
     { price = parseFloat(price); }
     catch (error)
     {
-        diagnostics_clear();
         diagnostics_add_error("The price must be a number.");
+        return;
+    }
+    if (isNaN(price))
+    {
+        diagnostics_add_error("The price must be a number.");
+        return;
     }
 
     // put together the JSON object

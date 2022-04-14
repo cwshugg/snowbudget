@@ -3,29 +3,33 @@
 //      Connor Shugg
 
 // Document globals
-const addt_btn_cancel = document.getElementById("btn_cancel");
-const addt_btn_update = document.getElementById("btn_update");
-const addt_input_price = document.getElementById("tprice");
-const addt_input_vendor = document.getElementById("tvendor");
-const addt_input_desc = document.getElementById("tdesc");
-const addt_class_dropdown = document.getElementById("tclass");
+const editt_btn_cancel = document.getElementById("btn_cancel");
+const editt_btn_delete = document.getElementById("btn_delete");
+const editt_btn_update = document.getElementById("btn_update");
+const editt_input_price = document.getElementById("tprice");
+const editt_input_vendor = document.getElementById("tvendor");
+const editt_input_desc = document.getElementById("tdesc");
+const editt_class_dropdown = document.getElementById("tclass");
+
+let transaction = null;
+let bclass_id = null;
 
 // Invoked when the 'cancel' button is clicked.
-function addt_click_cancel()
+function editt_click_cancel()
 {
     window.location.replace("home.html");
 }
 
 // Invoked when the 'save' button is clicked.
-function addt_click_update()
+function editt_click_update()
 {
     diagnostics_clear();
 
     // retrieve all field values
-    let price = addt_input_price.value;
-    let vendor = addt_input_vendor.value;
-    let desc = addt_input_desc.value;
-    let bcid = addt_class_dropdown.value;
+    let price = editt_input_price.value;
+    let vendor = editt_input_vendor.value;
+    let desc = editt_input_desc.value;
+    let bcid = editt_class_dropdown.value;
     
     // if any are blank, don't proceed
     if (price === "" || vendor === "" || desc === "" || bcid === "")
@@ -36,21 +40,29 @@ function addt_click_update()
     { price = parseFloat(price); }
     catch (error)
     {
-        diagnostics_clear();
         diagnostics_add_error("The price must be a number.");
+        return;
+    }
+    if (isNaN(price))
+    {
+        diagnostics_add_error("The price must be a number.");
+        return;
     }
 
-    // put together the JSON object
-    let jdata = {
-        "class_id": bcid,
-        "price": price,
-        "vendor": vendor,
-        "description": desc,
-        "timestamp": Math.round(Date.now() / 1000)
-    };
+    // put together the JSON object, containing only the revisions
+    let jdata = {"transaction_id": transaction.id}
+    if (price !== transaction.price)
+    { jdata.price = price; }
+    if (vendor !== transaction.vendor)
+    { jdata.vendor = vendor; }
+    if (desc !== transaction.description)
+    { jdata.description = desc; }
+    if (bcid !== bclass_id)
+    { jdata.class_id = bcid; }
 
-    // send a request to create the transaction
-    send_request("/create/transaction", "POST", jdata).then(
+    // send a request to edit the transaction
+    diagnostics_clear();
+    send_request("/edit/transaction", "POST", jdata).then(
         function(response)
         {
             if (response.success)
@@ -60,19 +72,91 @@ function addt_click_update()
         },
         function(error)
         {
-            diagnostics_clear();
             diagnostics_add_error("Failed to send the request: " + error);
         }
     );
 }
 
+// Invoked when the 'delete' button is clicked.
+function editt_click_delete()
+{
+    // get the transaction ID and send a request to delete the transaction
+    let jdata = {"transaction_id": transaction.id};
+    diagnostics_clear();
+    send_request("/delete/transaction", "POST", jdata).then(
+        function(response)
+        {
+            if (response.success)
+            { diagnostics_add_success("Success. " + response.message); }
+            else
+            { diagnostics_add_error("Failure. " + response.message); }
+        },
+        function(error)
+        {
+            diagnostics_add_error("Failed to send the request: " + error);
+        }
+    );
+}
+
+// Callback function for when an input box changes or the dropdown box value
+// changes.
+function editt_input_change()
+{
+    // compare each field to the existing values. If nothing has changed, we'll
+    // keep the 'update' button disabled. If something HAS changed, we'll
+    // instead enable it
+    let price = editt_input_price.value;
+    let vendor = editt_input_vendor.value;
+    let desc = editt_input_desc.value;
+    let bcid = editt_class_dropdown.value;
+
+    // attempt to convert the price to a float
+    try
+    { price = parseFloat(price); }
+    catch (error)
+    {
+        diagnostics_add_error("The price must be a number.");
+        return;
+    }
+    if (isNaN(price))
+    {
+        diagnostics_add_error("The price must be a number.");
+        return;
+    }
+
+    if (price === transaction.price && vendor === transaction.vendor &&
+        desc === transaction.description && bcid === bclass_id)
+    { btn_update.disabled = true; }
+    else
+    { btn_update.disabled = false; }
+}
+
 // ============================= Initialization ============================= //
 // Asynchronously retrieves the back-end data and updates the display.
-async function addt_ui_init(tid)
+async function editt_ui_init(tid)
 {
     diagnostics_add_message("Contacting server...");
+    // first, retrieve the individual transaction
     const jdata = {"transaction_id": tid};
     let data = await send_request("/get/transaction", "POST", jdata);
+    if (!data)
+    {
+        // show an error message
+        diagnostics_clear();
+        diagnostics_add_error("Failed to retrieve transaction from server.");
+        return;
+    }
+    // if we couldn't find a matching transaction, tell the user
+    if (!data.success)
+    {
+        diagnostics_clear();
+        diagnostics_add_error("Failed to retrieve transaction. " + data.message);
+        return;
+    }
+    transaction = data.payload;
+
+    // next, retrieve the full set of budget classes
+    data = await retrieve_data();
     if (!data)
     {
         // show an error message
@@ -80,23 +164,14 @@ async function addt_ui_init(tid)
         diagnostics_add_error("Failed to retrieve data from server.");
         return;
     }
-    diagnostics_clear();
-
-    console.log(data.payload);
-
-    // enable the buttons now that we have data
-    addt_btn_update.disabled = false;
-    addt_btn_cancel.disabled = false;
-
-    return; // TODO TODO TODO TODO REMOVE
-
-    // sort the budget classes
     let bclasses = data.payload;
     bclasses.sort(function(c1, c2) { return c1.name.localeCompare(c2.name); });
-
+    diagnostics_clear();
+    
     // we'll iterate across each budget class and create dropdown options for
-    // each of them in our dropdown menu
-    let default_idx = -1;
+    // each of them in our dropdown menu. At the same time, we'll determine which
+    // of the classes the transaction belongs to
+    let match_idx = -1;
     for (let i = 0; i < bclasses.length; i++)
     {
         let bclass = bclasses[i];
@@ -105,25 +180,32 @@ async function addt_ui_init(tid)
         let opt = document.createElement("option");
         opt.value = bclass.id;
         opt.innerHTML = bclass.name;
-        addt_class_dropdown.appendChild(opt);
-
-        // while we're here, look to see if this budget class contains the word
-        // "default" in its keywords array. If it does, we'll auto-select this
-        // as the default selection
-        if (default_idx == -1)
+        editt_class_dropdown.appendChild(opt);
+        
+        // iterate through the class' transactions to search for ours
+        for (let j = 0; j < bclass.history.length; j++)
         {
-            let find_result = bclass.keywords.find(function(str) {
-                    return str.toLowerCase() === "default";
-            });
-            // if we found the keyword, update the default class
-            if (find_result != undefined)
-            { default_idx = i; }
+            if (tid === bclass.history[j].id)
+            {
+                match_idx = i;
+                break;
+            }
         }
     }
 
-    // if we found a default category, auto-select it
-    if (default_idx > -1)
-    { addt_class_dropdown.selectedIndex = default_idx; }
+    // if we didn't find a matching index, tell the user
+    if (match_idx == -1)
+    {
+        diagnostics_add_error("Failed to locate the class that owns the given transaction.");
+        return;
+    }
+    bclass_id = bclasses[match_idx].id;
+
+    // set the dropdown index and fill up the other input fields
+    editt_class_dropdown.selectedIndex = match_idx;
+    editt_input_price.value = transaction.price;
+    editt_input_vendor.value = transaction.vendor;
+    editt_input_desc.value = transaction.description;
 }
 
 // Window initialization function
@@ -138,9 +220,14 @@ window.onload = function()
     }
     const tid = params.get("transaction_id");
 
-    // set up button clicks and initialize the UI
-    addt_btn_cancel.addEventListener("click", addt_click_cancel);
-    addt_btn_update.addEventListener("click", addt_click_update);
-    addt_ui_init(tid);
+    // set up button clicks and other events, then initialize the UI
+    editt_btn_cancel.addEventListener("click", editt_click_cancel);
+    editt_btn_update.addEventListener("click", editt_click_update);
+    editt_btn_delete.addEventListener("click", editt_click_delete);
+    editt_input_price.addEventListener("input", editt_input_change);
+    editt_input_vendor.addEventListener("input", editt_input_change);
+    editt_input_desc.addEventListener("input", editt_input_change);
+    editt_class_dropdown.addEventListener("change", editt_input_change);
+    editt_ui_init(tid);
 }
 
