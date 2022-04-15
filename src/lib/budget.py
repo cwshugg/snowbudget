@@ -6,6 +6,7 @@
 # Imports
 import os
 import sys
+from datetime import datetime
 
 # Enable import from the parent directory
 dpath = os.path.dirname(os.path.realpath(__file__)) # directory of this file
@@ -24,6 +25,14 @@ class Budget:
     def __init__(self, conf):
         self.conf = conf
         self.classes = []
+
+        # before we load the classes, we need to know if today is a reset date
+        # for the budget. If it is, we'll delete all transactions and start
+        # saving to a new backup location
+        nrd = self.conf.reset_dates[0]
+        now = datetime.now()
+        today_is_reset = nrd.month == now.month and nrd.day == now.day
+
         # get the config's save location and iterate through the directory's
         # files to load in each budget class
         for root, dirs, files in os.walk(conf.save_location):
@@ -33,6 +42,16 @@ class Budget:
                 if f.lower().endswith(".json"):
                     bc = BudgetClass.load(os.path.join(root, f))
                     self.classes.append(bc)
+                    # if today is a reset day, delete all transaction and write
+                    # the budget class back out to disk
+                    if today_is_reset:
+                        bc.history = []
+                        bc.save(os.path.join(root, f))
+        # attempt to initialize the backup location, and sae all budget classes
+        # to the backup location initially
+        self.backup_setup()
+        for bc in self.classes:
+            bc.save(self.backup_class_path(bc))
     
     # Used to iterate through the budget's classes.
     def __iter__(self):
@@ -52,6 +71,8 @@ class Budget:
         # write out to a file
         fpath = os.path.join(self.conf.save_location, bclass.to_file_name())
         bclass.save(fpath)
+        bclass.save(self.backup_class_path(bclass))
+        
     
     # Takes in a transaction and a budget class and adds it to the budget class,
     # then saves the budget class out to disk.
@@ -59,6 +80,7 @@ class Budget:
         bclass.add(transaction)
         fpath = os.path.join(self.conf.save_location, bclass.to_file_name())
         bclass.save(fpath)
+        bclass.save(self.backup_class_path(bclass))
 
     # ------------------------------ Searching ------------------------------- #
     # Expects a class ID string and searches the class list for it. Returns the
@@ -119,6 +141,7 @@ class Budget:
         # now, build the file path and delete the file
         fpath = os.path.join(self.conf.save_location, bc.to_file_name())
         os.remove(fpath)
+        os.remove(self.backup_class_path(bc))
 
     # Takes in a transaction and deletes it from its corresponding budget class.
     # Throws an exception if the transaction isn't inside the budget.
@@ -132,14 +155,38 @@ class Budget:
         bc.remove(t)
         fpath = os.path.join(self.conf.save_location, bc.to_file_name())
         bc.save(fpath)
+        bc.save(self.backup_class_path(bc))
 
-    # ---------------------------- Manual Saving ----------------------------- #
+    # ---------------------- Manual Saving and Backups ----------------------- #
     # Takes in a class and saves it to the correct location.
     def update_class(self, bclass):
         # first, delete the old version of the same budget class. Then, save the
         # new one with its updated fields
         self.delete_class(bclass)
         self.add_class(bclass)
+
+    # Attempts to set up the current backup location based on the config's
+    # 'backup_location' entry. Returns the path to the backup directory.
+    def backup_setup(self):
+        # get the most recently-passed reset date - we'll use this to create the
+        # directory name for present backups
+        nrd = self.conf.reset_dates[0]
+        lrd = self.conf.reset_dates[-1]
+        now = datetime.now()
+        rd = nrd if nrd.month == now.month and nrd.day == now.day else lrd
+        dpath = "%s_%d-%d" % (self.conf.backup_location, now.year, rd.month)
+
+        # if the directory doesn't exist, create it
+        assert not os.path.isfile(dpath), "backup location is a file"
+        if not os.path.isdir(dpath):
+            os.mkdir(dpath)
+        return dpath
+    
+    # Takes in a budget class and returns the path at which it should be saved.
+    def backup_class_path(self, bclass):
+        dpath = self.backup_setup()
+        fpath = os.path.join(dpath, bclass.to_file_name())
+        return fpath
 
     # ------------------------------ Retrieval ------------------------------- #
     # Returns *all* budget classes within the budget, in sorted order by name.

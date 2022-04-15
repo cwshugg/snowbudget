@@ -47,6 +47,7 @@ class Config:
 
         # for each entry in the reset dates, we'll try to parse out the month
         # and day for each month
+        assert len(self.reset_dates) >= 1, "must have at least one reset date"
         rdates = self.reset_dates.copy()
         self.reset_dates = []
         for rd in rdates:
