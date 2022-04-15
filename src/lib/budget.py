@@ -55,9 +55,11 @@ class Budget:
                         bc.history = []
                         bc.save(os.path.join(root, f))
         # attempt to initialize the backup location, and sae all budget classes
-        # to the backup location initially
+        # to the backup location if they don't exist
         for bc in self.classes:
-            bc.save(self.backup_class_path(bc))
+            fpath = self.backup_class_path(bc)
+            if not os.path.isfile(fpath):
+                bc.save(self.backup_class_path(bc))
     
     # Used to iterate through the budget's classes.
     def __iter__(self):
