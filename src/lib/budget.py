@@ -7,6 +7,7 @@
 import os
 import sys
 from datetime import datetime
+import shutil
 
 # Enable import from the parent directory
 dpath = os.path.dirname(os.path.realpath(__file__)) # directory of this file
@@ -33,13 +34,19 @@ class Budget:
         now = datetime.now()
         today_is_reset = nrd.month == now.month and nrd.day == now.day
 
+        # if today is a reset day, we'll back up the config file itself to the
+        # new backup location
+        bdpath = self.backup_setup()
+        if today_is_reset:
+            shutil.copy(self.conf.fpath, os.path.join(bdpath, "config.json"))
+
         # get the config's save location and iterate through the directory's
         # files to load in each budget class
         for root, dirs, files in os.walk(conf.save_location):
             for f in files:
                 # if the file has the JSON extension, we'll try to load it as a
                 # budget class object
-                if f.lower().endswith(".json"):
+                if f.lower().endswith(".json") and "config" not in f.lower():
                     bc = BudgetClass.load(os.path.join(root, f))
                     self.classes.append(bc)
                     # if today is a reset day, delete all transaction and write
@@ -49,7 +56,6 @@ class Budget:
                         bc.save(os.path.join(root, f))
         # attempt to initialize the backup location, and sae all budget classes
         # to the backup location initially
-        self.backup_setup()
         for bc in self.classes:
             bc.save(self.backup_class_path(bc))
     
@@ -174,7 +180,8 @@ class Budget:
         lrd = self.conf.reset_dates[-1]
         now = datetime.now()
         rd = nrd if nrd.month == now.month and nrd.day == now.day else lrd
-        dpath = "%s_%d-%d" % (self.conf.backup_location, now.year, rd.month)
+        dpath = "%s_%d-%d-%d" % (self.conf.backup_location, now.year,
+                                 rd.month, rd.day)
 
         # if the directory doesn't exist, create it
         assert not os.path.isfile(dpath), "backup location is a file"
