@@ -127,6 +127,19 @@
     outline: none;
 }
 
+.checkbox-main
+{
+    background-color: var(--color-bg2);
+    padding: 8px;
+    margin: 8px;
+}
+
+.checkbox-label-main
+{
+    font-family: var(--font1);
+    background-color: var(--color-bg1);
+}
+
 /********************************* Buttons ***********************************/
 button
 {
@@ -303,6 +316,20 @@ button
         margin: 12px;
     }
 
+    .checkbox-main
+    {
+        font-size: 36px;
+        width: 24px;
+        height: 24px;
+        padding: 20px;
+        margin: 20px;
+    }
+    
+    .checkbox-label-main
+    {
+        font-size: 36px;
+    }
+   
     .button-main
     {
         padding: 32px;

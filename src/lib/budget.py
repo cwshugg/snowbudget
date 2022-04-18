@@ -49,10 +49,10 @@ class Budget:
                 if f.lower().endswith(".json") and "config" not in f.lower():
                     bc = BudgetClass.load(os.path.join(root, f))
                     self.classes.append(bc)
-                    # if today is a reset day, delete all transaction and write
-                    # the budget class back out to disk
+                    # if today is a reset day, remove all non-recurring
+                    # transactions and write the budget class back out to disk
                     if today_is_reset:
-                        bc.history = []
+                        bc.reset()
                         bc.save(os.path.join(root, f))
         # attempt to initialize the backup location, and sae all budget classes
         # to the backup location if they don't exist

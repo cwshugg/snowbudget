@@ -433,7 +433,7 @@ def endpoint_create_transaction():
 
     # we're expecting a class ID *and* other fields within the JSON data
     expect = [["class_id", str], ["price", [float, int]], ["vendor", str],
-              ["description", str], ["timestamp", int]]
+              ["description", str], ["timestamp", int], ["recurring", bool]]
     if not check_json_fields(jdata, expect):
         return make_response_json(success=False, msg="Missing JSON fields.")
     jdata["price"] = float(jdata["price"]) # make sure the price is a float
@@ -454,7 +454,8 @@ def endpoint_create_transaction():
 
     # create a transaction struct and pass it to the API
     t = Transaction(jdata["price"], vendor=jdata["vendor"],
-                    description=jdata["description"], timestamp=ts)
+                    description=jdata["description"], timestamp=ts,
+                    recur=jdata["recurring"])
     b.add_transaction(bclass, t)
     return make_response_json(msg="Transaction created.", jdata=t.to_json())
 
@@ -476,7 +477,7 @@ def endpoint_create_transaction_search():
 
     # we're expecting a class query *and* other fields within the JSON data
     expect = [["query", str], ["price", [float, int]], ["vendor", str],
-              ["description", str], ["timestamp", int]]
+              ["description", str], ["timestamp", int]] # TODO add in 'recurring'
     if not check_json_fields(jdata, expect):
         return make_response_json(success=False, msg="Missing JSON fields.")
     jdata["price"] = float(jdata["price"]) # make sure the price is a float
@@ -673,7 +674,8 @@ def endpoint_edit_transaction():
     
     # check to make sure the types of any present fields are correct
     changes = 0
-    expect = [["price", [float, int]], ["vendor", str], ["description", str]]
+    expect = [["price", [float, int]], ["vendor", str], ["description", str],
+              ["recurring", bool]]
     for e in expect:
         key = e[0]
         if key in jdata:
@@ -697,6 +699,9 @@ def endpoint_edit_transaction():
         changes += 1
     if jdata["description"] != None:
         t.desc = jdata["description"]
+        changes += 1
+    if jdata["recurring"] != None:
+        t.recurring = jdata["recurring"]
         changes += 1
     if bc != None:
         changes += 1

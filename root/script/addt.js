@@ -8,6 +8,7 @@ const addt_btn_save = document.getElementById("btn_save");
 const addt_input_price = document.getElementById("tprice");
 const addt_input_vendor = document.getElementById("tvendor");
 const addt_input_desc = document.getElementById("tdesc");
+const addt_input_recur = document.getElementById("trecur");
 const addt_class_dropdown = document.getElementById("tclass");
 
 // Invoked when the 'cancel' button is clicked.
@@ -27,8 +28,8 @@ function addt_click_save()
     let desc = addt_input_desc.value;
     let bcid = addt_class_dropdown.value;
     
-    // if any are blank, don't proceed
-    if (price === "" || vendor === "" || desc === "" || bcid === "")
+    // if price or class ID are blank, don't proceed
+    if (price === "" || bcid === "")
     { return; }
 
     // attempt to convert the price to a float
@@ -45,13 +46,17 @@ function addt_click_save()
         return;
     }
 
+    // extract the recurring checkbox value
+    const recur = addt_input_recur.checked;
+
     // put together the JSON object
     let jdata = {
         "class_id": bcid,
         "price": price,
         "vendor": vendor,
         "description": desc,
-        "timestamp": Math.round(Date.now() / 1000)
+        "timestamp": Math.round(Date.now() / 1000),
+        "recurring": recur
     };
 
     // send a request to create the transaction

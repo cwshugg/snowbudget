@@ -169,6 +169,18 @@ class BudgetClass:
         transaction.owner = None
         return True
     
+    # Removes all transactions from the budget class, except for those that
+    # are marked as recurring.
+    def reset(self):
+        # we'll build a new array of references only containing those we want
+        new_history = []
+        for t in self.history:
+            if t.recurring:
+                new_history.append(t)
+        # update the internal history array
+        self.history = new_history
+
+    
     # Returns a list of all the class's transactions in sorted order by
     # timestamp (with the most recent transactions appearing first)
     def all(self):

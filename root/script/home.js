@@ -147,9 +147,16 @@ function make_bclass_history(bclass)
         let row = document.createElement("tr");
         row.className = "ttable-transaction-row";
         row.id = t.id;
+
+        // build a price string that includes whether or not the transaction is
+        // a recurring transaction
+        let pstr = float_to_dollar_string(t.price);
+        if (t.recurring)
+        { pstr += " (<span style=\"color: orange\">R</span>)"; }
+
+        // create an array of values for this transaction's row
         let values = [timestamp_to_date_string(t.timestamp),
-                      float_to_dollar_string(t.price),
-                      t.vendor, t.description];
+                      pstr, t.vendor, t.description];
         
         // add each cell value as a new 'td' element
         for (let j = 0; j < values.length; j++)

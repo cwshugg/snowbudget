@@ -19,11 +19,12 @@ class Transaction:
     # Takes in the vendor of the transaction, the price (absolute value), and
     # one or two more optional fields.
     def __init__(self, price, vendor="", description="", timestamp=datetime.now(),
-                 tid=None, owner=None):
+                 tid=None, owner=None, recur=False):
         self.price = price
         self.vendor = vendor
         self.desc = description
         self.timestamp = timestamp
+        self.recurring = recur      # whether or not this repeats each cycle
         self.owner = owner # backwards reference to owner budget class
 
         # if one wasn't given, we'll generate a unique transaction ID
@@ -56,7 +57,8 @@ class Transaction:
             "price": self.price,
             "vendor": self.vendor,
             "description": self.desc,
-            "timestamp": self.timestamp.timestamp()
+            "timestamp": self.timestamp.timestamp(),
+            "recurring": self.recurring
         }
         return jdata
     
@@ -69,7 +71,8 @@ class Transaction:
             ["price", float, "each transaction JSON must have a \"price\" float."],
             ["vendor", str, "each transaction JSON must have a \"vendor\" string."],
             ["description", str, "each transaction JSON must have a \"description\" list."],
-            ["timestamp", float, "each transaction JSON must have a \"timestamp\" float."]
+            ["timestamp", float, "each transaction JSON must have a \"timestamp\" float."],
+            ["recurring", bool, "each transaction JSON must have a \"recurring\" boolean."]
         ]
         for f in expected:
             assert f[0] in jdata and type(jdata[f[0]]) == f[1], f[2]
@@ -80,7 +83,7 @@ class Transaction:
         # create the object
         t = Transaction(jdata["price"], vendor=jdata["vendor"],
                         description=jdata["description"], timestamp=ts,
-                        tid=jdata["id"])
+                        tid=jdata["id"], recur=jdata["recurring"])
         return t
     
     # ------------------------------ Operations ------------------------------ #

@@ -265,7 +265,8 @@ def summarize():
         lines.append("Total: %s" % dollar_to_string(stat_total))
         if latest != None:
             lines.append("%d transactions" % len(transactions))
-            lines.append("Latest: %s" % latest)
+            recur_str = "(%sR%s) " % (C_CYAN, C_NONE) if latest.recurring else ""
+            lines.append("Latest: %s%s" % (recur_str, latest))
 
         # print the line of statistics
         llen = len(lines)
@@ -324,7 +325,8 @@ def list_all():
         atlen = len(allts)
         for j in range(atlen):
             prefix = STAB_TREE1 if j == atlen - 1 else STAB_TREE2
-            print("%s%s" % (prefix, allts[j]))
+            recur_str = "(%sR%s) " % (C_CYAN, C_NONE) if allts[j].recurring else ""
+            print("%s%s%s" % (prefix, recur_str, allts[j]))
     
     # get all classes within the budget (separate by type)
     classes = budget.all()
@@ -381,8 +383,11 @@ def add_transaction():
     desc = input_wrapper("Description:", blank_ok=True).strip()
     bclass = input_class()
 
+    # ask if it's a recurring transaction
+    recur = input_boolean("Recurring?")
+
     # add a transaction object to the correct bclass and save it
-    t = Transaction(price, vendor=vendor, description=desc)
+    t = Transaction(price, vendor=vendor, description=desc, recur=recur)
     try:
         budget.add_transaction(bclass, t)
         success("Transaction added.")

@@ -9,6 +9,7 @@ const editt_btn_update = document.getElementById("btn_update");
 const editt_input_price = document.getElementById("tprice");
 const editt_input_vendor = document.getElementById("tvendor");
 const editt_input_desc = document.getElementById("tdesc");
+const editt_input_recur = document.getElementById("trecur");
 const editt_class_dropdown = document.getElementById("tclass");
 
 let transaction = null;
@@ -30,6 +31,7 @@ function editt_click_update()
     let vendor = editt_input_vendor.value;
     let desc = editt_input_desc.value;
     let bcid = editt_class_dropdown.value;
+    let recur = editt_input_recur.checked;
     
     // if any are blank, don't proceed
     if (price === "" || vendor === "" || desc === "" || bcid === "")
@@ -59,6 +61,8 @@ function editt_click_update()
     { jdata.description = desc; }
     if (bcid !== bclass_id)
     { jdata.class_id = bcid; }
+    if (recur !== transaction.recurring)
+    { jdata.recurring = recur; }
 
     // send a request to edit the transaction
     diagnostics_clear();
@@ -109,7 +113,8 @@ function editt_input_change()
     let vendor = editt_input_vendor.value;
     let desc = editt_input_desc.value;
     let bcid = editt_class_dropdown.value;
-
+    let recur = editt_input_recur.checked;
+    
     // attempt to convert the price to a float
     try
     { price = parseFloat(price); }
@@ -125,7 +130,8 @@ function editt_input_change()
     }
 
     if (price === transaction.price && vendor === transaction.vendor &&
-        desc === transaction.description && bcid === bclass_id)
+        desc === transaction.description && bcid === bclass_id &&
+        recur === transaction.recurring)
     { btn_update.disabled = true; }
     else
     { btn_update.disabled = false; }
@@ -227,6 +233,7 @@ window.onload = function()
     editt_input_price.addEventListener("input", editt_input_change);
     editt_input_vendor.addEventListener("input", editt_input_change);
     editt_input_desc.addEventListener("input", editt_input_change);
+    editt_input_recur.addEventListener("input", editt_input_change);
     editt_class_dropdown.addEventListener("change", editt_input_change);
     editt_ui_init(tid);
 }
