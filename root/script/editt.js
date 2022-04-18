@@ -212,6 +212,7 @@ async function editt_ui_init(tid)
     editt_input_price.value = transaction.price;
     editt_input_vendor.value = transaction.vendor;
     editt_input_desc.value = transaction.description;
+    editt_input_recur.checked = transaction.recurring == true;
 }
 
 // Window initialization function
