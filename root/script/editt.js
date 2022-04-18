@@ -33,8 +33,8 @@ function editt_click_update()
     let bcid = editt_class_dropdown.value;
     let recur = editt_input_recur.checked;
     
-    // if any are blank, don't proceed
-    if (price === "" || vendor === "" || desc === "" || bcid === "")
+    // if the price or class ID are blank, don't proceed
+    if (price === "" || bcid === "")
     { return; }
 
     // attempt to convert the price to a float
