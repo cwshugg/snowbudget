@@ -161,7 +161,11 @@ def input_class_type(prompt="Class type:", blank_ok=False):
 def input_class(prompt="[SEARCH] Budget class:"):
     while True:
         text = input_wrapper(prompt, color=C_CYAN).strip()
-        classes = budget.search_class(text)
+        result = budget.search_class(text)
+        if not result.success:
+            print("Failed: %s" % result.message)
+            return None
+        classes = result.data
         clen = len(classes)
         # if nothing was found, say so and loop again
         if clen == 0:
@@ -182,7 +186,11 @@ def input_transaction(prompt="[SEARCH] Transaction:"):
         text = input_wrapper(prompt, color=C_CYAN)
         # now, invoke the Budget to search for a transaction loop back around if
         # nothing was found
-        ts = budget.search_transaction(text)
+        result = budget.search_transaction(text)
+        if not result.success:
+            print("Failed: %s" % result.message)
+            return None
+        ts = result.data
         tlen = len(ts)
         if tlen == 0:
             print("Couldn't find anything.")
@@ -361,11 +369,11 @@ def add_class():
     
     # construct a budget class and add it to the budget
     bc = BudgetClass(name, ctype, desc, keywords=words)
-    try:
-        budget.add_class(bc)
-        success("Budget class added.")
-    except Exception as e:
-        fatality(msg="failed to add a new budget class", exception=e)
+    result = budget.add_class(bc)
+    if not result.success:
+        print("Failed to add a new class: %s" % result.message)
+        return
+    success("Budget class added.")
 
 # Handles '--add-transaction'.
 def add_transaction():
@@ -382,17 +390,20 @@ def add_transaction():
     vendor = input_wrapper("Vendor:", blank_ok=True).strip()
     desc = input_wrapper("Description:", blank_ok=True).strip()
     bclass = input_class()
+    if bclass == None:
+        print("Failed to find a budget class.")
+        return
 
     # ask if it's a recurring transaction
     recur = input_boolean("Recurring?")
 
     # add a transaction object to the correct bclass and save it
     t = Transaction(price, vendor=vendor, description=desc, recur=recur)
-    try:
-        budget.add_transaction(bclass, t)
-        success("Transaction added.")
-    except Exception as e:
-        fatality(msg="failed to add a new transaction", exception=e)
+    result = budget.add_transaction(bclass, t)
+    if not result.success:
+        print("Failed to add a new transaction: %s" % result.message)
+        return
+    success("Transaction added.")
 
 
 # ================================= Deletion ================================= #
@@ -404,22 +415,27 @@ def delete_class():
 
     # get the class from input, then try to delete
     bclass = input_class()
-    try:
-        budget.delete_class(bclass)
-        success("Budget class deleted.")
-    except Exception as e:
-        fatality(msg="failed to delete the specified class", exception=e)
+    if bclass == None:
+        print("Failed to find a budget class.")
+        return
+    result = budget.delete_class(bclass)
+    if not result.success:
+        print("Failed to delete the specified class: %s" % result.message)
+        return
+    success("Budget class deleted.")
     
 # Prompts the user for information to delete an existing transaction.
 def delete_transaction():
     # get the transaction from input, then try to delete
     t = input_transaction()
-    try:
-        budget.delete_transaction(t)
-        success("Transaction deleted.")
-    except Exception as e:
-        raise e
-        fatality(msg="failed to delete the specified transaction", exception=e)
+    if t == None:
+        print("Failed to find a transaction.")
+        return
+    result = budget.delete_transaction(t)
+    if not result.success:
+        print("Failed to delete the specified transaction: %s" % result.message)
+        return
+    success("Transaction deleted.")
 
 
 # ================================= Updates ================================== #
@@ -429,7 +445,11 @@ def edit_class():
         exit(msg="You have no budget classes.")
     
     # get the class from input and make a shallow copy
-    bc = input_class().copy()
+    bc = input_class()
+    if bc == None:
+        print("Failed to find a budget class.")
+        return
+    bc = bc.copy()
     updates = []
 
     # prompt to enter a new type
@@ -470,10 +490,10 @@ def edit_class():
         updates.append(ustr)
 
     # update the budget backend
-    try:
-        budget.update_class(bc)
-    except Exception as e:
-        fatality(msg="failed to update class", exception=e)
+    result = budget.update_class(bc)
+    if not result.success:
+        print("Failed to update the class: %s" % result.message)
+        return
 
     # if no updates were made, print and return
     if len(updates) == 0:
@@ -488,6 +508,9 @@ def edit_class():
 # Handles the '--edit' option.
 def edit_transaction():
     t = input_transaction()
+    if t == None:
+        print("Failed to find a transaction.")
+        return
     updates = []
 
     # prompt the user to edit the price
@@ -522,15 +545,21 @@ def edit_transaction():
     owner = t.owner
     if input_boolean("Move to a different class?"):
         owner = input_class()
+        if owner == None:
+            print("Failed to find a budget class.")
+            return
         updates.append("Moved to a new class: '%s' --> '%s'." %
                            (t.owner.name, owner.name))
 
     # invoke the API to remove the transaction then re-add it
-    try:
-        budget.delete_transaction(t)
-        budget.add_transaction(owner, t)
-    except Exception as e:
-        fatality(msg="failed to update transaction", exception=e)
+    result = budget.delete_transaction(t)
+    if not result.success:
+        print("Failed to update the transaction (delete): %s" % result.message)
+        return
+    result = budget.add_transaction(owner, t)
+    if not result.success:
+        print("Failed to update the transaction (add): %s" % result.message)
+        return
     
     # if no updates were made, say so and return
     if len(updates) == 0:

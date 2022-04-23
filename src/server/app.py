@@ -303,9 +303,10 @@ def get_helper(field):
 
     # if the search failed, return a message. Otherwise, convert the object to
     # JSON and return it
-    if result == None:
-        return make_response_json(success=False, msg="Couldn't find a match.")
-    return make_response_json(jdata=result.to_json())
+    if not result.success:
+        m = "Failed: %s" % result.message
+        return make_response_json(success=False, msg=m)
+    return make_response_json(jdata=result.data.to_json())
 
 # Used to retrieve a budget class. Expects a class ID.
 @app.route("/get/class", methods = ["POST"])
@@ -341,16 +342,18 @@ def search_helper(mode):
     # invoke the budget API to search for classes
     b = get_budget()
     matches = []
+    result = None
     mode = mode.lower()
     if mode == "class":
-        matches = b.search_class(jdata["query"])
+        result = b.search_class(jdata["query"])
     elif mode == "transaction":
-        matches = b.search_transaction(jdata["query"])
+        result = b.search_transaction(jdata["query"])
 
     # if the search failed, return an appropriate message
-    if len(matches) == 0:
-        return make_response_json(success=False,
-                                  msg="Couldn't find any matches.")
+    if not result.success:
+        m = "Failed: %s" % result.message
+        return make_response_json(success=False, msg=m)
+    matches = result.data
 
     # build a JSON array of all matches
     jarray = []
@@ -410,12 +413,11 @@ def endpoint_create_class():
     # create a new budget class object and attempt to add it to the budget
     bclass = BudgetClass(jdata["name"], ctype, jdata["description"], keywords=kws)
     b = get_budget()
-    try:
-        b.add_class(bclass)
-        return make_response_json(msg="Class created.", jdata=bclass.to_json())
-    except Exception as e:
-        return make_response_json(success=False,
-                                     msg="Failed to create the class: %s" % e)
+    result = b.add_class(bclass)
+    if not result.success:
+        m = "Failed: %s" % result.msg
+        return make_response_json(success=False, msg=m)
+    return make_response_json(msg="Class created.", jdata=bclass.to_json())
 
 # Used to create a new transaction.
 @app.route("/create/transaction", methods = ["POST"])
@@ -440,10 +442,11 @@ def endpoint_create_transaction():
 
     # first, search for the class, given its ID (make a shallow copy)
     b = get_budget()
-    bclass = b.get_class(jdata["class_id"])
-    if bclass == None:
-        return make_response_json(success=False,
-                                  msg="Couldn't find the specified class.")
+    result = b.get_class(jdata["class_id"])
+    if not result.success:
+        m = "Failed: %s" % result.message
+        return make_response_json(success=False, msg=m)
+    bclass = result.data
 
     # try to convert the given timestamp integer into a datetime object
     ts = None
@@ -456,7 +459,10 @@ def endpoint_create_transaction():
     t = Transaction(jdata["price"], vendor=jdata["vendor"],
                     description=jdata["description"], timestamp=ts,
                     recur=jdata["recurring"])
-    b.add_transaction(bclass, t)
+    result = b.add_transaction(bclass, t)
+    if not result.success:
+        m = "Failed: %s" % result.message
+        return make_response_json(success=False, msg=m)
     return make_response_json(msg="Transaction created.", jdata=t.to_json())
 
 # This endpoint allows a query for a budget class to be specified rather than a
@@ -484,12 +490,11 @@ def endpoint_create_transaction_search():
 
     # first, search for the class, given its ID (make a shallow copy)
     b = get_budget()
-    matches = b.search_class(jdata["query"])
-    if len(matches) == 0:
-        return make_response_json(success=False,
-                                  msg="Couldn't find any matching classes.")
-    # otherwise, we'll just take the first one
-    bclass = matches[0]
+    result = b.search_class(jdata["query"])
+    if not result.success:
+        m = "Failed: %s" % result.message
+        return make_response_json(success=False, msg=m)
+    bclass = result.data[0]
 
     # try to convert the given timestamp integer into a datetime object
     ts = None
@@ -502,7 +507,10 @@ def endpoint_create_transaction_search():
     # create a transaction struct and pass it to the API
     t = Transaction(jdata["price"], vendor=jdata["vendor"],
                     description=jdata["description"], timestamp=ts)
-    b.add_transaction(bclass, t)
+    result = b.add_transaction(bclass, t)
+    if not result.success:
+        m = "Failed: %s" % result.message
+        return make_response_json(success=False, msg=m)
     return make_response_json(msg="Transaction created. Added to class: \"%s\"." % bclass.name,
                               jdata=t.to_json())
 
@@ -535,15 +543,19 @@ def delete_helper(field):
         result = b.get_transaction(jdata[field])
 
     # if the search failed, return a message
-    if result == None:
-        return make_response_json(success=False,
-                                  msg="Couldn't find a match.")
+    if not result.success:
+        m = "Failed: %s" % result.message
+        return make_response_json(success=False, msg=m)
+    obj = result.data
     
     # attempt to delete the object
     if field == "class_id":
-        b.delete_class(result)
+        result = b.delete_class(obj)
     elif field == "transaction_id":
-        b.delete_transaction(result)
+        result = b.delete_transaction(obj)
+    if not result.success:
+        m = "Failed: %s" % result.message
+        return make_response_json(success=False, msg=m)
     
     # return an appropriate message
     msg = "Deleted."
@@ -586,10 +598,11 @@ def endpoint_edit_class():
 
     # search for the transaction
     b = get_budget()
-    bc = b.get_class(jdata["class_id"]).copy()
-    if bc == None:
-        return make_response_json(success=False,
-                                  msg="Couldn't find a matching class.")
+    result = b.get_class(jdata["class_id"])
+    if not result.success:
+        m = "Failed: %s" % result.message
+        return make_response_json(success=False, msg=m)
+    bc = result.data.copy()
 
     # we'll look for the following fields in the JSON data to use as updates
     expect = [["name", str], ["type", str], ["description", str],
@@ -654,10 +667,11 @@ def endpoint_edit_transaction():
 
     # search for the transaction
     b = get_budget()
-    t = b.get_transaction(jdata["transaction_id"])
-    if t == None:
-        return make_response_json(success=False,
-                                  msg="Couldn't find a matching transaction.")
+    result = b.get_transaction(jdata["transaction_id"])
+    if not result.success:
+        m = "Failed: %s" % result.message
+        return make_response_json(success=False, msg=m)
+    t = result.data
 
     # if the user specified a class ID, we'll move the transaction to the
     # corresponding class
@@ -667,10 +681,11 @@ def endpoint_edit_transaction():
         if type(jdata["class_id"]) != str:
             return make_response_json(success=False, msg="Invalid JSON fields.")
         # locate the class based on the class ID
-        bc = b.get_class(jdata["class_id"])
-        if bc == None:
-            return make_response_json(success=False,
-                                      msg="Couldn't find any matching classes.")
+        result = b.get_class(jdata["class_id"])
+        if not result.success:
+            m = "Failed: %s" % result.message
+            return make_response_json(success=False, msg=m)
+        bc = result.data
     
     # check to make sure the types of any present fields are correct
     changes = 0
@@ -710,8 +725,16 @@ def endpoint_edit_transaction():
     # update
     if changes > 0:
         bc = t.owner if bc == None else bc
-        b.delete_transaction(t)
-        b.add_transaction(bc, t)
+        # attempt a delete
+        result = b.delete_transaction(t)
+        if not result.success:
+            m = "Failed: %s" % result.message
+            return make_response_json(success=False, msg=m)
+        # attempt an add
+        result = b.add_transaction(bc, t)
+        if not result.success:
+            m = "Failed: %s" % result.message
+            return make_response_json(success=False, msg=m)
         return make_response_json(msg="Made %d changes." % changes)
     return make_response_json(msg="Made no changes.")
 

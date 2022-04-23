@@ -19,6 +19,14 @@ if dpath not in sys.path:                           # add to path
 from lib.bclass import BudgetClass, BudgetClassType
 from lib.transaction import Transaction
 
+# Simple class used to represent a return value from these 
+class BudgetResult:
+    # Constructor. Sets up fields.
+    def __init__(self, success=True, msg="", data=None):
+        self.success = success
+        self.message = msg
+        self.data = data
+
 # Budget class
 class Budget:
     # Takes in the Config object that was parsed prior to this object's
@@ -34,11 +42,15 @@ class Budget:
         now = datetime.now()
         today_is_reset = nrd.month == now.month and nrd.day == now.day
 
-        # if today is a reset day, we'll back up the config file itself to the
-        # new backup location
-        bdpath = self.backup_setup()
-        if today_is_reset:
-            shutil.copy(self.conf.fpath, os.path.join(bdpath, "config.json"))
+        try:
+            # if today is a reset day, we'll back up the config file itself to the
+            # new backup location
+            bdpath = self.backup_setup()
+            if today_is_reset:
+                shutil.copy(self.conf.fpath, os.path.join(bdpath, "config.json"))
+        except Exception as e:
+            # if we fail to setup the backup location, don't panic
+            pass
 
         # get the config's save location and iterate through the directory's
         # files to load in each budget class
@@ -60,12 +72,16 @@ class Budget:
                     if today_is_reset and class_needs_reset:
                         bc.reset()
                         bc.save(os.path.join(root, f))
-        # attempt to initialize the backup location, and sae all budget classes
-        # to the backup location if they don't exist
-        for bc in self.classes:
-            fpath = self.backup_class_path(bc)
-            if not os.path.isfile(fpath):
-                bc.save(self.backup_class_path(bc))
+        try:
+            # attempt to initialize the backup location, and save all budget classes
+            # to the backup location if they don't exist
+            for bc in self.classes:
+                fpath = self.backup_class_path(bc)
+                if not os.path.isfile(fpath):
+                    bc.save(self.backup_class_path(bc))
+        except Exception as e:
+            # if we fail to set up the backup location, don't panic
+            pass
     
     # Used to iterate through the budget's classes.
     def __iter__(self):
@@ -85,8 +101,13 @@ class Budget:
         # write out to a file
         fpath = os.path.join(self.conf.save_location, bclass.to_file_name())
         bclass.save(fpath)
-        bclass.save(self.backup_class_path(bclass))
-        
+        # attempt to back up
+        try:
+            bclass.save(self.backup_class_path(bclass))
+        except Exception as e:
+            m = "Failed to backup class: %s" % e
+            return BudgetResult(success=True, msg=m)
+        return BudgetResult(success=True)
     
     # Takes in a transaction and a budget class and adds it to the budget class,
     # then saves the budget class out to disk.
@@ -94,7 +115,14 @@ class Budget:
         bclass.add(transaction)
         fpath = os.path.join(self.conf.save_location, bclass.to_file_name())
         bclass.save(fpath)
-        bclass.save(self.backup_class_path(bclass))
+        # attempt to back up
+        try:
+            bclass.save(self.backup_class_path(bclass))
+        except Exception as e:
+            m = "Failed to backup class: %s" % e
+            return BudgetResult(success=True, msg=m)
+        return BudgetResult(success=True)
+
 
     # ------------------------------ Searching ------------------------------- #
     # Expects a class ID string and searches the class list for it. Returns the
@@ -102,8 +130,8 @@ class Budget:
     def get_class(self, class_id):
         for bc in self.classes:
             if bc.match_id(class_id):
-                return bc
-        return None
+                return BudgetResult(success=True, data=bc)
+        return BudgetResult(success=False, msg="Couldn't find a match")
     
     # Expects a transaction ID string and searches all classes for it. Returns
     # the transaction object if one is found, or None if nothing is found.
@@ -111,8 +139,8 @@ class Budget:
         for bc in self.classes:
             for t in bc:
                 if t.match_id(transaction_id):
-                    return t
-        return None
+                    return BudgetResult(success=True, data=t)
+        return BudgetResult(success=False, msg="Couldn't find a match")
 
     # Takes in text and searches the expense classes for a matching one.
     # Returns a list of matching BudgetClass objects.
@@ -123,7 +151,10 @@ class Budget:
             # if the class matches the text in one way or another, add it
             if c.match(text):
                 result.append(c)
-        return result
+        # build a return object
+        succ = len(result) > 0
+        m = "" if succ else "Couldn't find any matches"
+        return BudgetResult(success=succ, msg=m, data=result)
     
     # Used to search for a transaction given some sort of information about it.
     # Returns a list of transaction objects that matched the text in one way
@@ -137,8 +168,10 @@ class Budget:
             for t in bc.all():
                 if t.match(text):
                     result.append(t)
-        # return the resulting list
-        return result
+        # build a return object
+        succ = len(result) > 0
+        m = "" if succ else "Couldn't find any matches"
+        return BudgetResult(success=succ, msg=m, data=result)
     
     # ------------------------------ Removals -------------------------------- #
     # Takes in a budget class and does two things:
@@ -148,36 +181,64 @@ class Budget:
     def delete_class(self, bclass):
         # use the given class's ID to find the equivalent object stored in the
         # Budget object, then use it to get the index
-        bc = self.get_class(bclass.bcid)
+        result = self.get_class(bclass.bcid)
+        if not result.success:
+            return result
+        bc = result.data
         idx = self.classes.index(bc)
         self.classes.pop(idx)
 
         # now, build the file path and delete the file
         fpath = os.path.join(self.conf.save_location, bc.to_file_name())
         os.remove(fpath)
-        os.remove(self.backup_class_path(bc))
+        # attempt to back up
+        try:
+            bclass.save(self.backup_class_path(bclass))
+        except Exception as e:
+            m = "Failed to backup class: %s" % e
+            return BudgetResult(success=True, msg=m)
+        return BudgetResult(success=True)
+
 
     # Takes in a transaction and deletes it from its corresponding budget class.
     # Throws an exception if the transaction isn't inside the budget.
     def delete_transaction(self, transaction):
         # locate the true transaction object stored within the budget object AND
         # the true budget class that's storing the transaction
-        t = self.get_transaction(transaction.tid)
-        bc = self.get_class(transaction.owner.bcid)
+        result = self.get_transaction(transaction.tid)
+        if not result.success:
+            return result
+        t = result.data
+        result = self.get_class(transaction.owner.bcid)
+        if not result.success:
+            return result
+        bc = result.data
         
         # remove the transaction from the class, then save the budget class
         bc.remove(t)
         fpath = os.path.join(self.conf.save_location, bc.to_file_name())
         bc.save(fpath)
-        bc.save(self.backup_class_path(bc))
+        # attempt to back up
+        try:
+            bclass.save(self.backup_class_path(bclass))
+        except Exception as e:
+            m = "Failed to backup class: %s" % e
+            return BudgetResult(success=True, msg=m)
+        return BudgetResult(success=True)
+
 
     # ---------------------- Manual Saving and Backups ----------------------- #
     # Takes in a class and saves it to the correct location.
     def update_class(self, bclass):
         # first, delete the old version of the same budget class. Then, save the
         # new one with its updated fields
-        self.delete_class(bclass)
-        self.add_class(bclass)
+        result = self.delete_class(bclass)
+        if not result.success:
+            return result
+        result = self.add_class(bclass)
+        if not result.success:
+            return result
+        return BudgetResult(success=True)
 
     # Attempts to set up the current backup location based on the config's
     # 'backup_location' entry. Returns the path to the backup directory.
