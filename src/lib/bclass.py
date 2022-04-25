@@ -187,6 +187,8 @@ class BudgetClass:
         new_history = []
         for t in self.history:
             if t.recurring:
+                # adjust the transaction's date to the the current one
+                t.timestamp = datetime.now()
                 new_history.append(t)
         # update the internal history array and set our 'last_reset' timestamp
         self.history = new_history
