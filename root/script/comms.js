@@ -15,9 +15,19 @@ async function send_request(endpoint, method, jdata)
     { request_body = JSON.stringify(jdata); }
 
     // send a request to the correct server endpoint
-    let response = await fetch(url + endpoint, {
-        method: method, body: request_body
-    });
+    let response = null;
+    if (jdata == null)
+    {
+        response = await fetch(url + endpoint, {
+            method: method
+        });
+    }
+    else
+    {
+        response = await fetch(url + endpoint, {
+            method: method, body: request_body
+        });
+    }
 
     // retrieve the response body and attempt to parse it as JSON
     let text = await response.text();

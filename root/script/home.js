@@ -7,7 +7,7 @@ const bclass_expense_container = document.getElementById("bclass_expenses");
 const bclass_income_container = document.getElementById("bclass_income");
 const summary_container = document.getElementById("budget_summary");
 const btn_add_transaction = document.getElementById("btn_add_transaction");
-const btn_add_class = document.getElementById("btn_add_class");
+const savings_container = document.getElementById("savings");
 
 
 // ============================== Interaction =============================== //
@@ -186,7 +186,7 @@ function make_bclass_history(bclass)
 
 // =============================== UI Updates =============================== //
 // Used to refresh the summary written at the top of the page.
-async function summary_refresh(bclasses)
+async function summary_refresh(bclasses, reset_dates)
 {
     summary_container.innerHTML = "";
     // we'll compute some statistics
@@ -240,9 +240,85 @@ async function summary_refresh(bclasses)
     elem.appendChild(total_elem);
     if (total != 0.0)
     { elem.innerHTML += float_to_dollar_string(total); }
-    
+    elem.innerHTML += "<br>";
+
+    // grab the nearest reset date and create an element to display it
+    let next_date_elem = document.createElement("b");
+    next_date_elem.className = "color-acc1";
+    next_date_elem.innerHTML = "Next reset: ";
+    elem.appendChild(next_date_elem);
+    elem.innerHTML += timestamp_to_date_string(reset_dates[0]);
+
     // append to the main div to add to the document
     summary_container.appendChild(elem);
+}
+
+// Used to refresh the savings menu.
+async function savings_refresh(bclasses, savings_categories)
+{
+    // first, compute the income and expense sums
+    let esum = 0.0;
+    let isum = 0.0;
+    for (let i = 0; i < bclasses.length; i++)
+    {
+        let sum = bclass_sum(bclasses[i]);
+        if (bclass_is_expense(bclasses[i]))
+        { esum += sum; }
+        else if (bclass_is_income(bclasses[i]))
+        { isum += sum; }
+    }
+    sumdiff = isum - esum;
+    
+    // compute an array of the savings amounts for each category
+    savings_sum = 0.0;
+    for (let i = 0; i < savings_categories.length; i++)
+    {
+        let save_amount = 0.0;
+        if (sumdiff > 0.0)
+        { save_amount = savings_categories[i].percent * sumdiff; }
+        // set the field in each category, and add to our savings sum
+        savings_categories[i].amount = save_amount;
+        savings_sum += save_amount;
+
+    }
+ 
+    // create the collapsible button and content
+    savings_btn = make_collapsible_button("savings_btn", "Savings",
+                                          float_to_dollar_string(savings_sum),
+                                          "color-acc2 font-main", "");
+    savings_content = make_collapsible_content("savings_content");
+
+    // add a line of intro information
+    let intro = document.createElement("p");
+    intro.innerHTML = "Take your savings and split them into these categories.";
+    if (sumdiff <= 0.0)
+    { intro.innerHTML = "You don't have enough money for savings."; }
+    savings_content.appendChild(intro);
+
+    // now, we'll add an element for each category
+    let list = document.createElement("ul");
+    for (let i = 0; i < savings_categories.length; i++)
+    {
+        // create an element for this category
+        let elem = document.createElement("li");
+        let header = document.createElement("b");
+        let percent = document.createElement("b");
+        percent.className = "color-income1";
+        percent.innerHTML = float_to_percent_string(savings_categories[i].percent);
+        header.className = "color-acc1";
+        header.innerHTML = savings_categories[i].category + " (" +
+                           percent.outerHTML + "): ";
+        elem.appendChild(header);
+        elem.innerHTML += float_to_dollar_string(savings_categories[i].amount);
+        list.appendChild(elem);
+    }
+    savings_content.appendChild(list);
+
+    // add the elements to the page and initialize the collapsible
+    savings_container.appendChild(savings_btn);
+    savings_container.appendChild(savings_content);
+    collapsible_init(savings_btn);
+
 }
 
 // Used to refresh the main menu.
@@ -250,7 +326,6 @@ async function menu_refresh(bclasses)
 {
     // enable the buttons
     btn_add_transaction.disabled = false;
-    btn_add_class.disabled = false;
 
     // add listener to the 'add transaction' button to jump to the right page
     btn_add_transaction.addEventListener("click", click_add_transaction);
@@ -343,15 +418,40 @@ async function ui_init()
         diagnostics_add_error("Failed to retrieve data from server.");
         return;
     }
+    // also, look up the reset dates
+    let rdates = await send_request("/get/resets", "GET", null);
+    if (!rdates)
+    {
+        diagnostics_clear();
+        diagnostics_add_error("Failed to retrieve reset dates from the server.");
+        return;
+    }
+    // also, look up the savings categories
+    let scs = await send_request("/get/savings", "GET", null);
+    if (!scs)
+    {
+        diagnostics_clear();
+        diagnostics_add_error("Failed to retrieve savings categories from the server.");
+        return;
+    }
     diagnostics_clear();
 
     // extract the payload and sort them (budget classes) by name
     let bclasses = data.payload;
     bclasses.sort(function(c1, c2) { return c1.name.localeCompare(c2.name); });
 
+    // extract the reset dates and sort them by timestamp
+    let reset_dates = rdates.payload;
+    reset_dates.sort(function(rd1, rd2) { return rd1 - rd2; });
+    
+    // extract the savings categories and sort by name
+    let savings_categories = scs.payload;
+    savings_categories.sort(function(sc1, sc2) { return sc1.category.localeCompare(sc2.category); });
+
     // pass the budget classes to refresh functions
-    summary_refresh(bclasses);
+    summary_refresh(bclasses, reset_dates);
     menu_refresh(bclasses);
+    savings_refresh(bclasses, savings_categories);
     budget_classes_refresh(bclasses);
 }
 

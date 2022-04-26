@@ -34,6 +34,8 @@ class Budget:
     def __init__(self, conf):
         self.conf = conf
         self.classes = []
+        self.savings = conf.surplus_savings
+        self.reset_dates = conf.reset_dates
 
         # before we load the classes, we need to know if today is a reset date
         # for the budget. If it is, we'll delete all transactions and start

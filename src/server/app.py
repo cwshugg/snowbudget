@@ -318,6 +318,34 @@ def endpoint_get_class():
 def endpoint_get_transaction():
     return get_helper("transaction_id")
 
+# Used to retrieve a listing of the budget cycle's reset dates.
+@app.route("/get/resets", methods = ["GET"])
+def endpoint_get_resets():
+    user = get_user(session)
+    if user == None:
+        return make_response_json(rstatus=404)
+
+    # get the reset dates and build a JSON object to return
+    b = get_budget()
+    result = []
+    for rd in b.reset_dates:
+        result.append(rd.timestamp())
+    return make_response_json(jdata=result)
+
+# Used to retrieve a listing of the budget's savings categories.
+@app.route("/get/savings", methods = ["GET"])
+def endpoint_get_savings():
+    user = get_user(session)
+    if user == None:
+        return make_response_json(rstatus=404)
+
+    # get the reset dates and build a JSON object to return
+    b = get_budget()
+    result = []
+    for sc in b.savings:
+        result.append(sc.to_json())
+    return make_response_json(jdata=result)
+
 
 # ================================== Search ================================== #
 # Helper function used for the searcher endpoints. Takes in the 'mode' to

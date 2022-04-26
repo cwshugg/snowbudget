@@ -16,5 +16,16 @@
         "10-1",
         "11-1",
         "12-1"
+    ],:
+    "surplus_savings":
+    [
+        {
+            "category": "Savings Account",
+            "percent": 0.1
+        },
+        {
+            "category": "401(k)",
+            "percent": 0.15
+        }
     ]
 }

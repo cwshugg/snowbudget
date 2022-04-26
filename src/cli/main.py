@@ -73,6 +73,13 @@ def dollar_to_string(value):
         return "-$%.2f" % abs(value)
     return "$%.2f" % value
 
+# Used to convert a float to a percent string.
+def percent_to_string(value):
+    if value < 0.0:
+        return "-%.2f%%" % abs(value * 100.0)
+    return "%.2f%%" % (value * 100.0)
+
+
 # ============================== Input Reading =============================== #
 # Takes a prompt and gets a string input from the user. By default, blanks are
 # not allowed, but they can be by toggling the switch.
@@ -311,7 +318,7 @@ def summarize():
     for i in range(iclen):
         pfx = STAB_TREE2 if i < iclen - 1 else STAB_TREE1
         ictotal += summarize_budget_class(iclasses[i], pfx)
-    
+        
     # compute and print totals
     net = ictotal - ectotal
     sys.stdout.write("\n")
@@ -319,6 +326,24 @@ def summarize():
     print("Total income:    %s" % dollar_to_string(ictotal))
     print("----")
     print("Net:             %s" % dollar_to_string(net))
+
+    # print surplus savings
+    sslen = len(budget.savings)
+    print("\n%d Surplus Savings Categories" % sslen)
+    for i in range(sslen):
+        pfx = STAB_TREE2 if i < sslen - 1 else STAB_TREE1
+        # if we have a positive net value we can do some savings! So we'll print
+        # an extra value that shows how much savings should go into each
+        # surplus category
+        extra = ""
+        if net > 0.0:
+            save_amount = budget.savings[i].percent * net
+            extra = " (%s%s%s)" % (C_GREEN, dollar_to_string(save_amount), C_NONE)
+        # print the summary string
+        print("%s%s%s%s: %s%s" % (pfx, C_CYAN, budget.savings[i].name,
+                                C_NONE, percent_to_string(budget.savings[i].percent),
+                                extra))
+
 
 # Handles the '--list' option.
 def list_all():
@@ -349,7 +374,6 @@ def list_all():
     alen = len(allclasses)
 
     # for each expense class, list it
-
     for i in range(alen):
         list_budget_class(allclasses[i])
 

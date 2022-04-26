@@ -16,6 +16,11 @@ function float_to_dollar_string(value)
     return formatter.format(value);
 }
 
+function float_to_percent_string(value)
+{
+    return (value * 100.0) + "%";
+}
+
 // Takes in a float/integer timestamp and returns a string formatted as a date.
 function timestamp_to_date_string(value)
 {
