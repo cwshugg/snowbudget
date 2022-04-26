@@ -266,12 +266,11 @@ class Budget:
         fpath = os.path.join(dpath, bclass.to_file_name())
         return fpath
 
-    # ------------------------------ Retrieval ------------------------------- #
+    # ---------------------------- Other Helpers ----------------------------- #
     # Returns *all* budget classes within the budget, in sorted order by name.
     def all(self):
         return sorted(self.classes, key=lambda bc: bc.name.lower())
     
-    # ----------------------------- JSON Helpers ----------------------------- #
     # Creates one monolithic JSON struct containing all budget classes and
     # all transactions within them.
     def to_json(self):
@@ -280,4 +279,13 @@ class Budget:
         for c in self.classes:
             jdata.append(c.to_json())
         return jdata
+    
+    # Returns the number of seconds from now until the next scheduled budget
+    # reset.
+    def time_to_reset(self):
+        # get the earliest reset date and compare it against the current time
+        nrd = self.conf.reset_dates[0]
+        now = datetime.now()
+        return nrd.timestamp() - now.timestamp()
+
 

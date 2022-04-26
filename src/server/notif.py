@@ -18,9 +18,10 @@ def notif_init(conf):
 # Function to send a string message to an email address.
 def notif_send_email(address, message, subject=""):
     # put together a JSON object to send to my IFTTT event.
+    subject_pfx = "sb "
     jdata = {
         "to": address,
-        "subject": "snwbdgt %s" % subject,
+        "subject": "%s%s" % (subject_pfx, subject),
         "content": message
     }
     # attempt to send the request
