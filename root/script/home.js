@@ -184,6 +184,69 @@ function make_bclass_history(bclass)
     return tdiv;
 }
 
+function make_savings_table(savings_categories)
+{
+    // create a div to contain the table
+    let tdiv = document.createElement("div");
+    tdiv.className = "ttable-container";
+
+    // create a table and set up its class names
+    let table = document.createElement("table");
+    table.className = "ttable";
+    table.className += " color-acc2";
+
+    // set up the first row (the headers)
+    let row1 = document.createElement("tr");
+    row1.className = "ttable-row";
+    let columns = ["Category", "Percentage", "Amount to Save"];
+    for (let i = 0; i < columns.length; i++)
+    {
+        let th = document.createElement("th");
+        th.className = "ttable-header";
+        // set up bolded text with a specific text color for the cell
+        span = document.createElement("span");
+        span.className = "color-text1";
+        span.innerHTML = "<b>" + columns[i] + "</b>";
+        th.appendChild(span);
+        // append the entry to the row
+        row1.appendChild(th);
+    }
+    table.appendChild(row1);
+
+    // iterate across each category and fill in each row
+    for (let i = 0; i < savings_categories.length; i++)
+    { 
+        let row = document.createElement("tr");
+        row.className = "ttable-transaction-row";
+
+        // create an array of values for this transaction's row
+        let values = [savings_categories[i].category,
+                      float_to_percent_string(savings_categories[i].percent),
+                      savings_categories[i].amount]
+        
+        // add each cell value as a new 'td' element
+        for (let j = 0; j < values.length; j++)
+        {
+            let td = document.createElement("td");
+            td.className = "ttable-cell";
+            // make a paragraph element with a certain text color for the cell
+            span = document.createElement("span");
+            span.className = "color-text1";
+            span.innerHTML = values[j];
+            td.appendChild(span);
+            // append the entry to the row
+            row.appendChild(td);
+        }
+        // append the row to the table
+        table.appendChild(row);
+    }
+    
+    // put the table into the container and return it
+    tdiv.appendChild(table);
+    return tdiv;
+}
+
+
 // =============================== UI Updates =============================== //
 // Used to refresh the summary written at the top of the page.
 async function summary_refresh(bclasses, reset_dates)
@@ -285,34 +348,19 @@ async function savings_refresh(bclasses, savings_categories)
     // create the collapsible button and content
     savings_btn = make_collapsible_button("savings_btn", "Savings",
                                           float_to_dollar_string(savings_sum),
-                                          "color-acc2 font-main", "");
+                                          "color-acc2 font-main", "color-acc1");
     savings_content = make_collapsible_content("savings_content");
 
     // add a line of intro information
     let intro = document.createElement("p");
     intro.innerHTML = "Take your savings and split them into these categories.";
     if (sumdiff <= 0.0)
-    { intro.innerHTML = "You don't have enough money for savings."; }
+    { intro.innerHTML = "You don't have extra money for savings."; }
     savings_content.appendChild(intro);
 
-    // now, we'll add an element for each category
-    let list = document.createElement("ul");
-    for (let i = 0; i < savings_categories.length; i++)
-    {
-        // create an element for this category
-        let elem = document.createElement("li");
-        let header = document.createElement("b");
-        let percent = document.createElement("b");
-        percent.className = "color-income1";
-        percent.innerHTML = float_to_percent_string(savings_categories[i].percent);
-        header.className = "color-acc1";
-        header.innerHTML = savings_categories[i].category + " (" +
-                           percent.outerHTML + "): ";
-        elem.appendChild(header);
-        elem.innerHTML += float_to_dollar_string(savings_categories[i].amount);
-        list.appendChild(elem);
-    }
-    savings_content.appendChild(list);
+    // now, build a table with our savings data
+    let table = make_savings_table(savings_categories); 
+    savings_content.appendChild(table);
 
     // add the elements to the page and initialize the collapsible
     savings_container.appendChild(savings_btn);
