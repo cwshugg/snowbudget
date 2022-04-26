@@ -11,6 +11,7 @@ import argparse
 import json
 from datetime import datetime
 import shutil
+import signal
 
 # Enable import from the parent directory
 dpath = os.path.dirname(os.path.realpath(__file__)) # directory of this file
@@ -40,6 +41,10 @@ C_YELLOW = "\033[33m"
 C_CYAN = "\033[36m"
 
 # ============================= Helper Functions ============================= #
+# Simple SIGINT handler for graceful interruptions.
+def sigint_handler(sig, frame):
+    abrupt_exit()
+
 # Used to print a fatal error and exit.
 def fatality(msg=None, exception=None):
     message = "%sFatal error%s%s" % \
@@ -628,6 +633,9 @@ def backup_budget(bpath):
 # ============================ Main Functionality ============================ #
 # Main function.
 def main():
+    # install the SIGINT handler
+    signal.signal(signal.SIGINT, sigint_handler)
+
     # parse the arguments, then parse the config file
     args = parse_args()
     global config
