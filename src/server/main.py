@@ -58,14 +58,20 @@ class RenewerThread(threading.Thread):
     def __init__(self, conf, tick_rate=43200, notif_threshold=172800):
         self.conf = conf
         self.tick_rate = tick_rate          # rate at which thread renews
-        self.notify_threshold = notif_threshold # time after which notifs occur
+        self.notif_threshold = notif_threshold # time after which notifs occur
 
         # set up synchronization fields
         self.kill = False                   # master thread kill switch
-        self.cond = threading.Condition(self.lock) # condition variable
+        self.cond = threading.Condition()   # condition variable
 
         # invoke the parent constructor
         threading.Thread.__init__(self, target=self.run)
+
+    # Used to notify all users via email.
+    def notify_users(self, message, subject):
+        for user in self.conf.users:
+            notif_send_email(user.email, message, subject)
+            log_write("Notified user '%s': '%s'" % (user.username, message))
 
     # Main runner function for the thread.
     def run(self):
@@ -87,24 +93,16 @@ class RenewerThread(threading.Thread):
             log_write("Renewer thread tick. [ttr: %d]" % ttr)
 
             # if the time-to-reset is less than our threshold, notify all users
-            if ttr < self.notif_threshold:
-                for user in self.conf.users:
-                    subject = "[savings]"
-                    
-                    # compute the number of days/hours/minutes until the reset
-                    rdays = int(float(ttr) / 86400.0)
-                    rhours = int(float(ttr - (rdays * 86400)) / 3600.0)
-                    rmins = int(float(ttr - (rdays * 86400) - (rhours * 3600)) / 60.0)
-
-                    # create the final message and send the email
-                    msg = "Reset occurring in %d days, %d hours, %d minutes. Check savings." % \
-                          (rdays, rhours, rmins)
-                    notif_send_email(user.email, msg, subject)
-                    log_write("Notified user '%s' of inbound reset." % user.username)
-
-                    # wait a short time before sending the next email so we
-                    # don't risk them getting lost in transit to IFTTT
-                    time.sleep(1)
+            if ttr > 0: #< self.notif_threshold:
+                subject = "[savings]"
+                # compute the number of days/hours/minutes until the reset
+                rdays = int(float(ttr) / 86400.0)
+                rhours = int(float(ttr - (rdays * 86400)) / 3600.0)
+                rmins = int(float(ttr - (rdays * 86400) - (rhours * 3600)) / 60.0)
+                # create the final message and send the emails
+                msg = "Reset occurring in %d days, %d hours, %d minutes. Check savings." % \
+                        (rdays, rhours, rmins)
+                self.notify_users(msg, subject)
 
             # go to sleep and wait for the next tick
             with self.cond:
@@ -134,7 +132,9 @@ def main():
 
     # create the renwer thread
     global rthread
-    rt = RenewerThread(config)
+    rt = RenewerThread(config,
+                       tick_rate=config.rthread_tick_rate,
+                       notif_threshold=config.rthread_notif_threshold)
     rthread = rt
     rt.start()
 

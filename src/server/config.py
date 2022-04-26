@@ -44,7 +44,10 @@ class Config:
             ["certs_cert_fname", str, "missing certs_cert_fname string"],
             ["certs_key_fname", str, "missing certs_key_fname string"],
             # user-related configs
-            ["users", list, "missing users list"]
+            ["users", list, "missing users list"],
+            # renewer thread configs
+            ["rthread_tick_rate", int, "missing rthread_tick_rate int"],
+            ["rthread_notif_threshold", int, "missing rthread_notif_threshold int"]
         ]
 
         # for each expected entry, assert its existence then set it as a global

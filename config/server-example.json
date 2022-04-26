@@ -31,6 +31,9 @@
     [
         {"username": "user0", "email": "someaddress1@gmail.com", "privilege": 1},
         {"username": "user1", "email": "someaddress2@gmail.com", "privilege": 1}
-    ]
+    ],
+
+    "rthread_tick_rate": 43200,
+    "rthread_notif_threshold": 172800
 }
 
