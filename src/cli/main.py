@@ -564,6 +564,9 @@ def edit_class():
     if input_boolean(prompt="Update the target?"):
         bc.target = input_budget_target()
         updates.append("Updated target.")
+    elif input_boolean(prompt="Delete the target?"):
+        bc.target = None
+        updates.append("Deleted the target.")
 
     # update the budget backend
     result = budget.update_class(bc)
