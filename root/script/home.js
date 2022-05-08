@@ -256,7 +256,7 @@ function make_savings_table(savings_categories)
         // create an array of values for this transaction's row
         let values = [savings_categories[i].category,
                       float_to_percent_string(savings_categories[i].percent),
-                      savings_categories[i].amount]
+                      float_to_dollar_string(savings_categories[i].amount)]
         
         // add each cell value as a new 'td' element
         for (let j = 0; j < values.length; j++)
