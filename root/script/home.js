@@ -9,6 +9,8 @@ const summary_container = document.getElementById("budget_summary");
 const btn_add_transaction = document.getElementById("btn_add_transaction");
 const savings_container = document.getElementById("savings");
 
+// Other globals
+let budget_total_income = 0.0;
 
 // ============================== Interaction =============================== //
 // Invoked when a transaction row is clicked in a budget class table.
@@ -88,8 +90,40 @@ function make_bclass_menu(bclass)
 
     // add the description to the div
     let desc = document.createElement("p");
-    desc.innerHTML = bclass.description;
+    desc.innerHTML = "<i>" + bclass.description + "</i>";
     div.appendChild(desc);
+
+    // add another line that tells if the class is under or over target
+    if (bclass.target)
+    {
+        let tp = document.createElement("p");
+        tval = btarget_value(bclass.target, budget_total_income);
+        tdiff = bclass_sum(bclass) - tval;
+
+        // now, come up with an appropriate message
+        tp.innerHTML = "This class is ";
+        if (tdiff == 0.0)
+        { tp.innerHTML += "<i>exactly</i> on target."; }
+        else if (tdiff < 0.0)
+        {
+            // choose an appropriate color depending on the type of class
+            let color = "var(--color-income1)";
+            if (bclass_is_income(bclass))
+            { color = "red"; }
+            tp.innerHTML += "<span style=\"color: " + color + "\">under</span> ";
+            tp.innerHTML += "the target by " + float_to_dollar_string(Math.abs(tdiff)) + ".";
+        }
+        else
+        {
+            // choose an appropriate color depending on the type of class
+            let color = "red";
+            if (bclass_is_income(bclass))
+            { color = "var(--color-income1)"; }
+            tp.innerHTML += "<span style=\"color: " + color + "\">over</span> ";
+            tp.innerHTML += "the target by " + float_to_dollar_string(Math.abs(tdiff)) + ".";
+        }
+        div.appendChild(tp);
+    }
     
     return div;
 }
@@ -420,9 +454,17 @@ async function budget_class_refresh(bclass)
         }
 
         // create the button and add it to the div (making the right-hand text
-        // the total dollar value of the class)
-        let sumstr = float_to_dollar_string(bclass_sum(bclass));
-        bclass_btn = make_collapsible_button(btn_id, bclass.name, sumstr,
+        // the total dollar value of the class, factoring in the target, if
+        // one exists for this class)
+        let bcsum = bclass_sum(bclass);
+        let sumstr = float_to_dollar_string(bcsum);
+        let tstr = "";
+        if (bclass.target)
+        {
+            tstr += " / " + float_to_dollar_string(btarget_value(bclass.target, budget_total_income));
+            tstr = "<span class=\"color-text2\">" + tstr + "</span>";
+        }
+        bclass_btn = make_collapsible_button(btn_id, bclass.name, sumstr + tstr,
                                              classes, rclasses);
         bclass_div.appendChild(bclass_btn);
     }
@@ -495,6 +537,14 @@ async function ui_init()
     // extract the savings categories and sort by name
     let savings_categories = scs.payload;
     savings_categories.sort(function(sc1, sc2) { return sc1.category.localeCompare(sc2.category); });
+
+    // compute total income
+    budget_total_income = 0.0;
+    for (let i = 0; i < bclasses.length; i++)
+    {
+        if (bclass_is_income(bclasses[i]))
+        { budget_total_income += bclass_sum(bclasses[i]); }
+    }
 
     // pass the budget classes to refresh functions
     summary_refresh(bclasses, reset_dates);

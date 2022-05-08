@@ -9,6 +9,7 @@
     --color-table2: rgb(20, 20, 20);
     --color-table3: rgb(32, 32, 32);
     --color-text1: rgb(225, 225, 255);
+    --color-text2: rgb(180, 180, 180);
     --color-acc1: rgb(153, 217, 234);
     --color-acc2: rgb(104, 133, 232);
     --color-acc3: rgb(0, 190, 225);
@@ -29,8 +30,17 @@
 .color-bg2
 { background-color: var(--color-bg2); }
 
+.color-bg3
+{ background-color: var(--color-bg3); }
+
+.color-bg4
+{ background-color: var(--color-bg4); }
+
 .color-text1
 { color: var(--color-text1); }
+
+.color-text2
+{ color: var(--color-text2); }
 
 .color-acc1
 { color: var(--color-acc1); }

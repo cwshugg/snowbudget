@@ -33,6 +33,16 @@ function timestamp_to_date_string(value)
 
 
 // ============================= Budget Classes ============================= //
+// Returns a float value indicating the current target value, given the btarget.
+function btarget_value(btarget, total_income)
+{
+    console.log(btarget);
+    if (btarget.type == "percent_income")
+    { return total_income * btarget.value; }
+    return btarget.value;
+}
+
+// ============================= Budget Classes ============================= //
 // Returns true if the given class is an expense class.
 function bclass_is_expense(bclass)
 {

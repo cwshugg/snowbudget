@@ -24,6 +24,7 @@ from lib.config import Config
 from lib.budget import Budget
 from lib.bclass import BudgetClass, BudgetClassType
 from lib.transaction import Transaction
+from lib.btarget import BudgetTarget, BudgetTargetType
 
 # Globals
 config = None
@@ -107,10 +108,10 @@ def input_price(prompt="Price:", blank_ok=False):
             return None
         try:
             price = float(price)
-            assert price > 0.0
+            assert price >= 0.0
             return price
         except Exception as e:
-            print("Please enter a price.")
+            print("Please enter a positive float value.")
 
 # Asks the user a yes/no question.
 def input_boolean(prompt):
@@ -215,6 +216,28 @@ def input_transaction(prompt="[SEARCH] Transaction:"):
         idx = input_number("Transaction number:", upper=tlen, lower=1, color=C_CYAN) - 1
         return ts[idx]
 
+# Reads user input to create a new BudgetTarget object.
+def input_budget_target():
+    while True:
+        # first, input the target type
+        tstr = input_wrapper(prompt="Target type:").lower()
+        if tstr not in ["dollar", "percent_income"]:
+            print("The target type must be either \"dollar\" or \"percent_income\"")
+            continue
+        tt = BudgetTargetType.DOLLAR if tstr == "dollar" else BudgetTargetType.PERCENT_INCOME
+
+        # next, input the target value
+        tval = input_price(prompt="Target value:")
+        if tt == BudgetTargetType.PERCENT_INCOME and (tval < 0.0 or tval > 1.0):
+            print("The target percentage value must be between 0.0 and 1.0.")
+            continue
+        elif tt == BudgetTargetType.DOLLAR and tval < 0.0:
+            print("The target dollar value must be greater than zero.")
+            continue
+        
+        # finally, construct the object and return it
+        return BudgetTarget(tval, ttype=tt)
+
 
 # ============================= Argument Parsing ============================= #
 # Responsible for parsing command-line arguments.
@@ -266,6 +289,9 @@ def parse_args():
 # =========================== Listing/Summarizing ============================ #
 # Prints basic information about each budget class to the terminal.
 def summarize():
+    ictotal = 0.0
+    ectotal = 0.0
+
     # Helper function for printing a budget class
     def summarize_budget_class(c, prefix):
         # print the name and description
@@ -278,11 +304,24 @@ def summarize():
         for t in transactions:
             stat_total += t.price
         latest = None if len(transactions) == 0 else transactions[0]
+            
+        # with the class's target, put together a string to print
+        c_target_val = None if c.target == None else c.target.get_value(total_income=ictotal)
+        c_target_str = ""
+        if c_target_val != None:
+            # first, come up with an appropriate color depending on the total
+            c_target_color = C_YELLOW
+            if stat_total < c_target_val:
+                c_target_color = C_GREEN if c.ctype == BudgetClassType.EXPENSE else C_RED
+            elif stat_total > c_target_val:
+                c_target_color = C_RED if c.ctype == BudgetClassType.EXPENSE else C_GREEN
+            # create a string formatted with the color and the target value
+            c_target_str = " / %s%s%s" % (c_target_color, dollar_to_string(c_target_val), C_NONE)
 
         # build a list of statistic lines to print
         prefix2 = STAB_TREE3 if prefix == STAB_TREE2 else STAB
         lines = []
-        lines.append("Total: %s" % dollar_to_string(stat_total))
+        lines.append("Total: %s%s" % (dollar_to_string(stat_total), c_target_str))
         if latest != None:
             lines.append("%d transactions" % len(transactions))
             recur_str = "(%sR%s) " % (C_CYAN, C_NONE) if latest.recurring else ""
@@ -308,27 +347,25 @@ def summarize():
         else:
             eclasses.append(c)
 
-    # process all expense classes
-    eclen = len(eclasses)
-    ectotal = 0.0
-    print("%d Expense Classes:" % eclen)
-    for i in range(eclen):
-        pfx = STAB_TREE2 if i < eclen - 1 else STAB_TREE1
-        ectotal += summarize_budget_class(eclasses[i], pfx)
-    
     # process all income classes
     iclen = len(iclasses)
-    ictotal = 0.0
     print("%d Income Classes:" % iclen)
     for i in range(iclen):
         pfx = STAB_TREE2 if i < iclen - 1 else STAB_TREE1
         ictotal += summarize_budget_class(iclasses[i], pfx)
-        
+    
+    # process all expense classes
+    eclen = len(eclasses)
+    print("%d Expense Classes:" % eclen)
+    for i in range(eclen):
+        pfx = STAB_TREE2 if i < eclen - 1 else STAB_TREE1
+        ectotal += summarize_budget_class(eclasses[i], pfx)
+            
     # compute and print totals
     net = ictotal - ectotal
     sys.stdout.write("\n")
-    print("Total expenses:  %s" % dollar_to_string(ectotal))
     print("Total income:    %s" % dollar_to_string(ictotal))
+    print("Total expenses:  %s" % dollar_to_string(ectotal))
     print("----")
     print("Net:             %s" % dollar_to_string(net))
 
@@ -396,8 +433,13 @@ def add_class():
     desc = input_wrapper("Class description:").strip()
     words = input_wrapper("Class key words:").strip().lower().split()
     
+    # if the user wants to, we'll add a target value to this class
+    bt = None
+    if input_boolean(prompt="Add a target?"):
+        bt = input_budget_target()
+    
     # construct a budget class and add it to the budget
-    bc = BudgetClass(name, ctype, desc, keywords=words)
+    bc = BudgetClass(name, ctype, desc, keywords=words, target=bt)
     result = budget.add_class(bc)
     if not result.success:
         print("Failed to add a new class: %s" % result.message)
@@ -517,6 +559,11 @@ def edit_class():
         for w in bc.keywords:
             ustr += "\"%s\" " % w
         updates.append(ustr)
+    
+    # prompt to update the target
+    if input_boolean(prompt="Update the target?"):
+        bc.target = input_budget_target()
+        updates.append("Updated target.")
 
     # update the budget backend
     result = budget.update_class(bc)

@@ -18,6 +18,8 @@ if dpath not in sys.path:                           # add to path
 
 # Local imports
 from lib.transaction import Transaction
+from lib.btarget import BudgetTarget
+
 
 # ================================ Type Enum ================================= #
 # Simple enum to differentiate between the *types* of budget classes.
@@ -29,12 +31,13 @@ class BudgetClassType(Enum):
 # Represents a single "category"/"class" of budgeting.
 class BudgetClass:
     # Constructs a new expense class given a name, type, and description.
-    def __init__(self, name, ctype, desc, keywords=[], history=[], bcid=None):
+    def __init__(self, name, ctype, desc, keywords=[], history=[], target=None, bcid=None):
         self.name = name            # name of the class
         self.ctype = ctype          # type of class (EXPENSE, INCOME, etc.)
         self.desc = desc            # description of this class
         self.keywords = keywords    # keywords to identify this class
         self.history = history      # transaction history
+        self.target = target        # target amount to save
         self.last_reset = None      # last time the class was reset (timestamp)
         # we'll generate a unique ID string for this budget class if one wasn't
         # passed into the function
@@ -77,6 +80,10 @@ class BudgetClass:
             "history": hdata,
         }
 
+        # add a 'target' if one exists
+        if self.target != None:
+            jdata["target"] = self.target.to_json()
+
         # if we have a 'last_reset' value, add that to the JSON data as well
         if self.last_reset != None:
             jdata["last_reset"] = self.last_reset.timestamp()
@@ -107,6 +114,10 @@ class BudgetClass:
         c = BudgetClass(jdata["name"], ctype, jdata["description"],
                         keywords=jdata["keywords"], history=[],
                         bcid=jdata["id"])
+        
+        # if the JSON has a 'target' field, save it
+        if "target" in jdata:
+            c.target = BudgetTarget.from_json(jdata["target"])
         
         # if the JSON data has a 'last_reset' field, save that as well
         if "last_reset" in jdata:
@@ -204,5 +215,5 @@ class BudgetClass:
     def copy(self):
         return BudgetClass(self.name, self.ctype, self.desc,
                            keywords=self.keywords, history=self.history,
-                           bcid=self.bcid)
+                           target=self.target, bcid=self.bcid)
 
