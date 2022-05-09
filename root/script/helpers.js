@@ -36,7 +36,6 @@ function timestamp_to_date_string(value)
 // Returns a float value indicating the current target value, given the btarget.
 function btarget_value(btarget, total_income)
 {
-    console.log(btarget);
     if (btarget.type == "percent_income")
     { return total_income * btarget.value; }
     return btarget.value;

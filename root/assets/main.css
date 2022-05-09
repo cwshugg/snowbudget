@@ -285,6 +285,23 @@ button
 }
 
 
+/********************************** Charts ***********************************/
+.chart-container
+{
+    padding: 8px;
+    margin: 8px;
+}
+
+.chart-main
+{
+    margin-bottom: 8px;
+    width: 90%;
+    color: var(--color-text1);
+    border: 1px solid var(--color-text2);
+    background-color: var(--color-bg3);
+}
+
+
 /****************************** Mobile Screens *******************************/
 /* https://stackoverflow.com/questions/42025632/how-to-detect-only-with-css-mobile-screens */
 @media only screen and (hover: none) and (pointer: coarse)

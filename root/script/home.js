@@ -11,6 +11,7 @@ const savings_container = document.getElementById("savings");
 
 // Other globals
 let budget_total_income = 0.0;
+let budget_rdates = null;
 
 // ============================== Interaction =============================== //
 // Invoked when a transaction row is clicked in a budget class table.
@@ -218,6 +219,100 @@ function make_bclass_history(bclass)
     return tdiv;
 }
 
+// Builds and returns one or more charts (with Chart.js) for a given class.
+function make_bclass_charts(bclass)
+{
+    // create a div and make sure this budget class actually has transactions
+    const div = document.createElement("div");
+    if (bclass.history.length <= 1)
+    { return div; }
+
+    // sort the bclass's history and set up the div's properties
+    bclass.history.sort(function(t1, t2) { return t2.timestamp - t1.timestamp; });
+    div.className = "chart-container";
+
+    // override a few chart globals
+    Chart.defaults.global.defaultFontColor = "rgb(225, 225, 255)";
+
+    // take the reset date array and compute the previous reset date that passed
+    // most recently (it's at the end of the array with the year increased by
+    // one)
+    let rdate1 = new Date(budget_rdates[budget_rdates.length - 1] * 1000);
+    rdate1.setFullYear(rdate1.getFullYear() - 1);
+    rdate1 = rdate1.getTime() / 1000
+    const rdate2 = budget_rdates[0];
+    let now = new Date().getTime() / 1000;
+
+    // ----------------------- Total-Over-Time Chart ------------------------ //
+    let chart1_data = [];
+    let chart1_labels = [];
+    let chart1_total = 0.0;
+    let time_idx = rdate1;
+    let chart1_enddate = rdate2;
+    if (now < chart1_enddate)
+    { chart1_enddate = now + (3600 * 24); }
+    while (timestamp_to_date_string(time_idx) !== timestamp_to_date_string(chart1_enddate))
+    {
+        // iterate through all transactions - if the day matches the current one
+        // we'll add its price to the running total
+        let total = 0.0;
+        for (let i = 0; i < bclass.history.length; i++)
+        {
+            const transaction = bclass.history[i];
+            if (timestamp_to_date_string(time_idx) === timestamp_to_date_string(transaction.timestamp))
+            { total += transaction.price; }
+        }
+        chart1_total += total;
+
+        // add to chart labels/data and increment the time index
+        chart1_labels.push(timestamp_to_date_string(time_idx));
+        chart1_data.push(chart1_total);
+        time_idx += 3600 * 24; // increase by one day
+    }
+    
+    // first, we'll create the total-over-time chart
+    const chart1_canvas = document.createElement("canvas");
+    chart1_canvas.className = "chart-main";
+    chart1_canvas.id = bclass.id + "_chart1";
+    const chart1_ctx = chart1_canvas.getContext("2d");
+    const chart1 = new Chart(chart1_ctx, {
+        type: "line",
+        data: {
+            labels: chart1_labels,
+            datasets: [{
+                label: "Total Over Time",
+                data: chart1_data,
+                borderColor: "rgb(0, 190, 225)",
+                backgroundColor: "rgba(104, 133, 232, 0.1)",
+            }]
+        },
+        options: {
+            title: {
+                display: true,
+                text: "Total Over Time (across current cycle)"
+            },
+            scales: {
+                xAxes: [{
+                    gridLines: {
+                        display: true,
+                        color: "rgb(100, 100, 100)"
+                    }
+                }],
+                yAxes: [{
+                    gridLines: {
+                        display: true,
+                        color: "rgb(100, 100, 100)"
+                    }
+                }],
+            }
+        }
+    });
+    div.appendChild(chart1_canvas);
+    
+    return div;
+}
+
+// Builds and returns a table containing savings information.
 function make_savings_table(savings_categories)
 {
     // create a div to contain the table
@@ -482,7 +577,8 @@ async function budget_class_refresh(bclass)
         // add a menu to the bclass's content section, then add a listing of
         // the class's transaction history
         bclass_content.appendChild(make_bclass_menu(bclass));
-        bclass_content.appendChild(make_bclass_history(bclass))
+        bclass_content.appendChild(make_bclass_history(bclass));
+        bclass_content.appendChild(make_bclass_charts(bclass));
     }
 }
 
@@ -516,6 +612,8 @@ async function ui_init()
         diagnostics_add_error("Failed to retrieve reset dates from the server.");
         return;
     }
+    budget_rdates = rdates.payload;
+    
     // also, look up the savings categories
     let scs = await send_request("/get/savings", "GET", null);
     if (!scs)
