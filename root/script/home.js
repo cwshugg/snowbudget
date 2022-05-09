@@ -269,6 +269,54 @@ function make_bclass_charts(bclass)
         chart1_data.push(chart1_total);
         time_idx += 3600 * 24; // increase by one day
     }
+
+    // create an array of dataset JSON objects to pass to the chart object
+    chart1_datasets = [{
+        label: "Total Over Time",
+        data: chart1_data,
+        borderColor: "rgb(0, 190, 225)",
+        backgroundColor: "rgba(104, 133, 232, 0.1)",
+    }];
+
+    // if this budget class has a target, we'll compute its value and draw it
+    // as a horizontal line on this graph
+    if (bclass.target)
+    {
+        let tval = btarget_value(bclass.target, budget_total_income);
+        // create an array of data points for each day, all holding the target
+        let chart1_target_data = [];
+        for (let i = 0; i < chart1_data.length; i++)
+        { chart1_target_data.push(tval); }
+
+        // pick out an appropriate color based on where we are relative to the
+        // target
+        let bcolor = "rgb(180, 180, 180)";
+        const bcolor_good = "rgb(0, 215, 0)";
+        const bcolor_bad = "rgb(255, 110, 110)";
+        const bsum = bclass_sum(bclass);
+        if (bsum < tval)
+        {
+            if (bclass_is_expense(bclass))
+            { bcolor = bcolor_good; }
+            else
+            { bcolor = bcolor_bad; }
+        }
+        else if (bsum > tval)
+        {
+            if (bclass_is_expense(bclass))
+            { bcolor = bcolor_bad; }
+            else
+            { bcolor = bcolor_good; }
+        }
+
+        // push to the chart's datasets
+        chart1_datasets.push({
+            label: "Target",
+            data: chart1_target_data,
+            borderColor: bcolor
+        });
+    }
+
     
     // first, we'll create the total-over-time chart
     const chart1_canvas = document.createElement("canvas");
@@ -279,12 +327,7 @@ function make_bclass_charts(bclass)
         type: "line",
         data: {
             labels: chart1_labels,
-            datasets: [{
-                label: "Total Over Time",
-                data: chart1_data,
-                borderColor: "rgb(0, 190, 225)",
-                backgroundColor: "rgba(104, 133, 232, 0.1)",
-            }]
+            datasets: chart1_datasets
         },
         options: {
             title: {
