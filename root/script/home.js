@@ -276,6 +276,7 @@ function make_bclass_charts(bclass)
         data: chart1_data,
         borderColor: "rgb(0, 190, 225)",
         backgroundColor: "rgba(104, 133, 232, 0.1)",
+        lineTension: 0
     }];
 
     // if this budget class has a target, we'll compute its value and draw it
@@ -313,7 +314,8 @@ function make_bclass_charts(bclass)
         chart1_datasets.push({
             label: "Target",
             data: chart1_target_data,
-            borderColor: bcolor
+            borderColor: bcolor,
+            lineTension: 0
         });
     }
 
