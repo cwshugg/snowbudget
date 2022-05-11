@@ -141,7 +141,9 @@ def auth_make_cookie(user):
 def auth_parse_cookie(cookie):
     global auth_secret
     try:
-        return jwt.decode(cookie, auth_secret, algorithms=["HS512"])
+        # we won't verify the expiration here - we do this manually
+        return jwt.decode(cookie, auth_secret, algorithms=["HS512"],
+                          options={"verify_exp": False})
     except Exception as e:
         return None
 
