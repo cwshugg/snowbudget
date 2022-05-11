@@ -93,7 +93,7 @@ class RenewerThread(threading.Thread):
             log_write("Renewer thread tick. [ttr: %d]" % ttr)
 
             # if the time-to-reset is less than our threshold, notify all users
-            if ttr < self.notif_threshold:
+            if ttr < self.notif_threshold and ttr >= 0:
                 subject = "[savings]"
                 # compute the number of days/hours/minutes until the reset
                 rdays = int(float(ttr) / 86400.0)
