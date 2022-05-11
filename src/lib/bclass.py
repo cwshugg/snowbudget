@@ -6,7 +6,7 @@
 import os
 import sys
 import json
-from enum import Enum
+from enum import IntEnum
 from datetime import datetime
 import hashlib
 
@@ -23,7 +23,7 @@ from lib.btarget import BudgetTarget
 
 # ================================ Type Enum ================================= #
 # Simple enum to differentiate between the *types* of budget classes.
-class BudgetClassType(Enum):
+class BudgetClassType(IntEnum):
     EXPENSE = 0,
     INCOME = 1
 

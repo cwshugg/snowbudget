@@ -261,6 +261,9 @@ def parse_args():
     p.add_argument("--backup", metavar="BACKUP_DIR",
                    help="Copies the current configuration file and all associated files to the specified location.",
                    default=None, nargs=1, type=str)
+    p.add_argument("--to-excel", metavar="EXCEL_OUTPUT_PATH",
+                   help="Converts the budget to an Excel spreadsheet and writes it out to disk.",
+                   default=None, nargs=1, type=str)
     # adding options
     p.add_argument("--add-class",
                    help="Add a new budget class.",
@@ -679,6 +682,12 @@ def backup_budget(bpath):
     shutil.copytree(config.save_location, os.path.join(bpath, "budget"))
     success("Successfully copied budget.")
 
+# Handles the '--to-excel' option.
+def save_to_excel(epath):
+    # invoke the budget's internal function and call it a day
+    budget.write_to_excel(epath)
+    success("Wrote Excel workbook to: %s" % epath)
+
 
 # ============================ Main Functionality ============================ #
 # Main function.
@@ -714,6 +723,11 @@ def main():
     # if a backup path was given, we'll try to copy all files
     if "backup" in args and args["backup"] != None:
         backup_budget(args["backup"][0])
+        exit()
+
+    # if an excel path is specified, we'll try to convert, then exit
+    if "to_excel" in args and args["to_excel"] != None:
+        save_to_excel(args["to_excel"][0])
         exit()
 
     # if '--add-class' was given, we'll try to add, then exit

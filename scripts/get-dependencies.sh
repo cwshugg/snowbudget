@@ -13,4 +13,6 @@ echo -e "${C_ACC}Installing flask...${C_NONE}"
 ${pip} install --user -U Flask
 echo -e "${C_ACC}Installing jwt...${C_NONE}"
 ${pip} install --user -U jwt
+echo -e "${C_ACC}Installing openpyxl...${C_NONE}"
+${pip} install --user -U openpyxl
 

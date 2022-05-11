@@ -8,6 +8,8 @@ import os
 import sys
 from datetime import datetime
 import shutil
+from openpyxl import Workbook
+from openpyxl.styles import Font
 
 # Enable import from the parent directory
 dpath = os.path.dirname(os.path.realpath(__file__)) # directory of this file
@@ -265,6 +267,66 @@ class Budget:
         dpath = self.backup_setup()
         fpath = os.path.join(dpath, bclass.to_file_name())
         return fpath
+    
+    # Takes in a file path and attempts to create an Excel file for the entire
+    # budget.
+    def write_to_excel(self, fpath):
+        # first, create an Excel workbook object, and create a worksheet for
+        # each budget class
+        wb = Workbook()
+
+        # sort all classes first by type, then by name
+        classes = sorted(self.classes, key=lambda bc: (int(bc.ctype), bc.name.lower()))
+        for bc in classes:
+            ws = wb.create_sheet(title=bc.name)
+            # set the color appropriately
+            if bc.ctype == BudgetClassType.INCOME:
+                ws.sheet_properties.tabColor = "A9D08E"
+            else:
+                ws.sheet_properties.tabColor = "FFD966"
+
+            # give our table some titles
+            header_font = Font(bold=True)
+            ws["A1"] = "Date"
+            ws["A1"].font = header_font
+            ws["B1"] = "Price"
+            ws["B1"].font = header_font
+            ws["C1"] = "Vendor"
+            ws["C1"].font = header_font
+            ws["D1"] = "Description"
+            ws["D1"].font = header_font
+
+            # for each transaction in the budget, we'll get its JSON form and
+            # use it to construct a row
+            idx = 2
+            total = 0.0
+            for t in bc:
+                jdata = t.to_json()
+                # set row values
+                ws["A%d" % idx] = datetime.fromtimestamp(jdata["timestamp"])
+                ws["A%d" % idx].number_format = "yyyy-mm-dd"
+                ws["B%d" % idx] = jdata["price"]
+                ws["B%d" % idx].number_format = "$#.00"
+                ws["C%d" % idx] = jdata["vendor"]
+                ws["D%d" % idx] = jdata["description"]
+                # set cell sizes
+                ws.column_dimensions["A"].width = 15
+                ws.column_dimensions["B"].width = 12
+                ws.column_dimensions["C"].width = 20
+                ws.column_dimensions["D"].width = 30
+                # increment counters
+                idx += 1
+                total += jdata["price"]
+
+            # add a row at the bottom for the total
+            ws["B%d" % idx] = total
+            ws["B%d" % idx].number_format = "$#.00"
+            ws["B%d" % idx].font = header_font
+            ws["C%d" % idx] = "Total"
+            ws["C%d" % idx].font = header_font
+
+        # save the workbook
+        wb.save(filename=fpath)
 
     # ---------------------------- Other Helpers ----------------------------- #
     # Returns *all* budget classes within the budget, in sorted order by name.
