@@ -10,6 +10,7 @@ from datetime import datetime
 import shutil
 from openpyxl import Workbook
 from openpyxl.styles import Font
+from openpyxl.chart import LineChart, Reference, Series
 
 # Enable import from the parent directory
 dpath = os.path.dirname(os.path.realpath(__file__)) # directory of this file
@@ -291,10 +292,19 @@ class Budget:
             ws["A1"].font = header_font
             ws["B1"] = "Price"
             ws["B1"].font = header_font
-            ws["C1"] = "Vendor"
+            ws["C1"] = "Running Total"
             ws["C1"].font = header_font
-            ws["D1"] = "Description"
+            ws["D1"] = "Vendor"
             ws["D1"].font = header_font
+            ws["E1"] = "Description"
+            ws["E1"].font = header_font
+
+            # set cell sizes
+            ws.column_dimensions["A"].width = 15
+            ws.column_dimensions["B"].width = 12
+            ws.column_dimensions["C"].width = 15
+            ws.column_dimensions["D"].width = 20
+            ws.column_dimensions["E"].width = 40
 
             # for each transaction in the budget, we'll get its JSON form and
             # use it to construct a row
@@ -302,28 +312,30 @@ class Budget:
             total = 0.0
             for t in bc:
                 jdata = t.to_json()
+                total += jdata["price"]
                 # set row values
                 ws["A%d" % idx] = datetime.fromtimestamp(jdata["timestamp"])
                 ws["A%d" % idx].number_format = "yyyy-mm-dd"
                 ws["B%d" % idx] = jdata["price"]
                 ws["B%d" % idx].number_format = "$#.00"
-                ws["C%d" % idx] = jdata["vendor"]
-                ws["D%d" % idx] = jdata["description"]
-                # set cell sizes
-                ws.column_dimensions["A"].width = 15
-                ws.column_dimensions["B"].width = 12
-                ws.column_dimensions["C"].width = 20
-                ws.column_dimensions["D"].width = 30
+                ws["C%d" % idx] = total
+                ws["C%d" % idx].number_format = "$#.00"
+                ws["D%d" % idx] = jdata["vendor"]
+                ws["E%d" % idx] = jdata["description"]
                 # increment counters
                 idx += 1
-                total += jdata["price"]
 
-            # add a row at the bottom for the total
-            ws["B%d" % idx] = total
-            ws["B%d" % idx].number_format = "$#.00"
-            ws["B%d" % idx].font = header_font
-            ws["C%d" % idx] = "Total"
-            ws["C%d" % idx].font = header_font
+            # if we have at least two transactions, we'll make a chart
+            if len(bc.history) > 1:
+                chart = LineChart()
+                chart.title = "Total Over Time"
+                chart.x_axis.title = "Time"
+                chart.y_axis.title = "Running Total"
+                # create references to the correct area and add it to the chart
+                chart_data = Reference(ws, min_col=3, max_col=3, min_row=1, max_row=(idx - 1))
+                chart.add_data(chart_data)
+                # add to the worksheet
+                ws.add_chart(chart)
 
         # save the workbook
         wb.save(filename=fpath)
