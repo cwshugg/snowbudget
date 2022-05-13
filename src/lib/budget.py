@@ -276,6 +276,16 @@ class Budget:
         # each budget class
         wb = Workbook()
 
+        # get the active sheet, change its name, and set a few fields
+        ws1 = wb.active
+        ws1.title = "Overview"
+        ws1["A1"] = "Name"
+        ws1["B1"] = self.conf.name
+        # set a few fonts
+        header_font = Font(bold=True)
+        for cell in ["A1"]:
+            ws1[cell].font = header_font
+
         # sort all classes first by type, then by name
         classes = sorted(self.classes, key=lambda bc: (int(bc.ctype), bc.name.lower()))
         for bc in classes:
@@ -287,7 +297,6 @@ class Budget:
                 ws.sheet_properties.tabColor = "FFD966"
 
             # give our table some titles
-            header_font = Font(bold=True)
             ws["A1"] = "Date"
             ws["A1"].font = header_font
             ws["B1"] = "Price"
@@ -306,11 +315,14 @@ class Budget:
             ws.column_dimensions["D"].width = 20
             ws.column_dimensions["E"].width = 40
 
+            # sort the transactions in ascending order by date
+            ts = sorted(bc.history, key=lambda t: t.timestamp.timestamp())
+
             # for each transaction in the budget, we'll get its JSON form and
             # use it to construct a row
             idx = 2
             total = 0.0
-            for t in bc:
+            for t in ts:
                 jdata = t.to_json()
                 total += jdata["price"]
                 # set row values

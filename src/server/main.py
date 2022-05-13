@@ -104,6 +104,17 @@ class RenewerThread(threading.Thread):
                         (rdays, rhours, rmins)
                 self.notify_users(msg, subject)
 
+            # attempt to write the bugdget out to an excel file
+            try:
+                backup_dpath = b.backup_setup()
+                excel_fpath = os.path.join(backup_dpath, "budget.xlsx")
+                # remove the file if it already exists, then write it back out
+                if os.path.isfile(excel_fpath):
+                    os.remove(excel_fpath)
+                b.write_to_excel(excel_fpath)
+            except Exception as e:
+                log_write("Failed to write budget to spreadsheet: %s" % e)
+
             # go to sleep and wait for the next tick
             with self.cond:
                 self.cond.wait(timeout=self.tick_rate)
