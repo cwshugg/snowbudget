@@ -135,7 +135,7 @@ def auth_make_cookie(user):
     # get the current datetime and compute an expiration time for the cookie
     now = int(datetime.now().timestamp())
     data = {"iat": now, "exp": now + 2592000, "sub": user.username}
-    token = jwt.encode(data, auth_secret, algorithm="HS512").decode("utf-8")
+    token = jwt.encode(data, auth_secret, algorithm="HS512")
     return token
 
 def auth_parse_cookie(cookie):
