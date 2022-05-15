@@ -7,6 +7,7 @@ const bclass_expense_container = document.getElementById("bclass_expenses");
 const bclass_income_container = document.getElementById("bclass_income");
 const summary_container = document.getElementById("budget_summary");
 const btn_add_transaction = document.getElementById("btn_add_transaction");
+const btn_get_spreadsheet = document.getElementById("btn_get_spreadsheet");
 const savings_container = document.getElementById("savings");
 
 // Other globals
@@ -45,6 +46,12 @@ function click_transaction_row(ev)
 function click_add_transaction(ev)
 {
     window.location.replace("addt.html");
+}
+
+// Invoked when the 'get spreadsheet' button is clicked.
+function click_get_spreadsheet(ev)
+{
+    retrieve_spreadsheet();
 }
 
 
@@ -548,10 +555,11 @@ async function menu_refresh(bclasses)
 {
     // enable the buttons
     btn_add_transaction.disabled = false;
+    btn_get_spreadsheet.disabled = false;
 
-    // add listener to the 'add transaction' button to jump to the right page
+    // add click listeners to the buttons
     btn_add_transaction.addEventListener("click", click_add_transaction);
-
+    btn_get_spreadsheet.addEventListener("click", click_get_spreadsheet);
 }
 
 // Used to update a single budget class UI element.

@@ -1,9 +1,15 @@
 # python artifacts
 __pycache__
 
+# vim swap files
+*.swp
+
 # directories to ignore
 sb_configs
 sb_keys
+
+# server files no worth remembering
+.budget.xlsx
 
 # symbolic links
 sb

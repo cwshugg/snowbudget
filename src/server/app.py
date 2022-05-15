@@ -346,6 +346,22 @@ def endpoint_get_savings():
         result.append(sc.to_json())
     return make_response_json(jdata=result)
 
+# Used to build and return an Excel spreadsheet version of the budget.
+@app.route("/get/spreadsheet", methods = ["GET"])
+def endpoint_get_spreadsheet():
+    user = get_user(session)
+    if user == None:
+        return make_response_json(rstatus=404)
+
+    # attempt to create a "budget.xlsx" in the budget's save location
+    b = get_budget()
+    sname = ".budget.xlsx"
+    spath = os.path.join(config.server_root_dpath, sname)
+    b.write_to_excel(spath)
+
+    # attempt to serve the file that was just created
+    return serve_file(sname)
+
 
 # ================================== Search ================================== #
 # Helper function used for the searcher endpoints. Takes in the 'mode' to

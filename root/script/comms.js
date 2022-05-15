@@ -46,3 +46,15 @@ async function retrieve_data()
     return data;
 }
 
+// Special-use function for downloading a spreadsheet of the budget through the
+// /get/spreadsheet endpoint.
+function retrieve_spreadsheet()
+{
+    // make a temporary anchor and simulate a click
+    let a = document.createElement("a");
+    a.href = url + "/get/spreadsheet";
+    a.target = "_blank";
+    a.download = "budget.xlsx";
+    a.click();
+}
+
