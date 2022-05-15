@@ -276,18 +276,68 @@ class Budget:
         # each budget class
         wb = Workbook()
 
+        # ------------------------ Overview Worksheet ------------------------ #
         # get the active sheet, change its name, and set a few fields
         ws1 = wb.active
         ws1.title = "Overview"
         ws1["A1"] = "Name"
         ws1["B1"] = self.conf.name
+        ws1["A2"] = "Start Date"
+        start_date = self.reset_dates[-1]
+        start_date = start_date.replace(year=start_date.year - 1)
+        ws1["B2"] = start_date
+        ws1["B2"].number_format = "yyyy-mm-dd"
+        ws1["A3"] = "End Date"
+        end_date = self.reset_dates[0]
+        end_date = datetime.fromtimestamp(end_date.timestamp() - 86400)
+        ws1["B3"] = end_date
+        ws1["B3"].number_format = "yyyy-mm-dd"
+        
+        # quickly loop through the classes together to compute totals for income
+        # and expenses
+        itotal = 0.0
+        etotal = 0.0
+        for bc in self.classes:
+            # iterate through the class' history
+            total = 0.0
+            for t in bc.history:
+                total += t.price
+            # depending on the type, add to the correct counter
+            if bc.ctype == BudgetClassType.INCOME:
+                itotal += total
+            else:
+                etotal += total
+
+        # set more overview fields
+        ws1["A4"] = "Total Income"
+        ws1["B4"] = itotal
+        ws1["B4"].number_format = "$#0.00"
+        ws1["A5"] = "Total Expenses"
+        ws1["B5"] = etotal
+        ws1["B5"].number_format = "$#0.00"
+        ws1["A6"] = "Surplus"
+        ws1["B6"] = itotal - etotal
+        ws1["B6"].number_format = "$#0.00"
+
+        # set up a header for a table we'll build below
+        ws1["A8"] = "Budget Class"
+        ws1["B8"] = "Type"
+        ws1["C8"] = "Total"
+        ws1["D8"] = "Target"
+        row_num = 9
+        
+        # set column widths
+        ws1.column_dimensions["A"].width = 35
+        ws1.column_dimensions["B"].width = 20
         # set a few fonts
         header_font = Font(bold=True)
-        for cell in ["A1"]:
+        for cell in ["A1", "A2", "A3", "A4", "A5", "A6", "A8", "B8", "C8", "D8"]:
             ws1[cell].font = header_font
 
+        # ----------------------- Per-Class Worksheet ------------------------ #
         # sort all classes first by type, then by name
         classes = sorted(self.classes, key=lambda bc: (int(bc.ctype), bc.name.lower()))
+        bccount = 0
         for bc in classes:
             ws = wb.create_sheet(title=bc.name)
             # set the color appropriately
@@ -301,19 +351,16 @@ class Budget:
             ws["A1"].font = header_font
             ws["B1"] = "Price"
             ws["B1"].font = header_font
-            ws["C1"] = "Running Total"
+            ws["C1"] = "Vendor"
             ws["C1"].font = header_font
-            ws["D1"] = "Vendor"
+            ws["D1"] = "Description"
             ws["D1"].font = header_font
-            ws["E1"] = "Description"
-            ws["E1"].font = header_font
 
             # set cell sizes
             ws.column_dimensions["A"].width = 15
             ws.column_dimensions["B"].width = 12
-            ws.column_dimensions["C"].width = 15
-            ws.column_dimensions["D"].width = 20
-            ws.column_dimensions["E"].width = 40
+            ws.column_dimensions["C"].width = 20
+            ws.column_dimensions["D"].width = 40
 
             # sort the transactions in ascending order by date
             ts = sorted(bc.history, key=lambda t: t.timestamp.timestamp())
@@ -329,26 +376,43 @@ class Budget:
                 ws["A%d" % idx] = datetime.fromtimestamp(jdata["timestamp"])
                 ws["A%d" % idx].number_format = "yyyy-mm-dd"
                 ws["B%d" % idx] = jdata["price"]
-                ws["B%d" % idx].number_format = "$#.00"
-                ws["C%d" % idx] = total
-                ws["C%d" % idx].number_format = "$#.00"
-                ws["D%d" % idx] = jdata["vendor"]
-                ws["E%d" % idx] = jdata["description"]
+                ws["B%d" % idx].number_format = "$#0.00"
+                ws["C%d" % idx] = jdata["vendor"]
+                ws["D%d" % idx] = jdata["description"]
                 # increment counters
                 idx += 1
 
-            # if we have at least two transactions, we'll make a chart
-            if len(bc.history) > 1:
-                chart = LineChart()
-                chart.title = "Total Over Time"
-                chart.x_axis.title = "Time"
-                chart.y_axis.title = "Running Total"
-                # create references to the correct area and add it to the chart
-                chart_data = Reference(ws, min_col=3, max_col=3, min_row=1, max_row=(idx - 1))
-                chart.add_data(chart_data)
-                # add to the worksheet
-                ws.add_chart(chart)
-
+            # add a row to our overview worksheet
+            tstr = "INCOME" if bc.ctype == BudgetClassType.INCOME else "EXPENSE"
+            rn = str(row_num)
+            ws1["A" + rn] = bc.name
+            ws1["B" + rn] = tstr
+            ws1["C" + rn] = total
+            ws1["C" + rn].number_format = "$#0.00"
+            if bc.target != None:
+                ws1["D" + rn] = bc.target.get_value(total_income=itotal)
+                ws1["D" + rn].number_format = "$#0.00"
+            row_num += 1
+                
+        # ----------------------------- Savings ------------------------------ #
+        # now we'll add savings information to the overview sheet
+        row_num += 1
+        rn = str(row_num)
+        ws1["A" + rn] = "Savings Category"
+        ws1["B" + rn] = "Percentage of Surplus"
+        ws1["C" + rn] = "Amount to Save"
+        for c in ["A", "B", "C"]:
+            ws1[c + rn].font = header_font
+        # iterate through each savings category
+        for sc in sorted(self.savings, key=lambda sc: sc.name):
+            row_num += 1
+            rn = str(row_num)
+            ws1["A" + rn] = sc.name
+            ws1["B" + rn] = sc.percent
+            ws1["B" + rn].number_format = "%#0"
+            ws1["C" + rn] = sc.percent * max(0.0, itotal - etotal)
+            ws1["C" + rn].number_format = "$#0.00"
+        
         # save the workbook
         wb.save(filename=fpath)
 
