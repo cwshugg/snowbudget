@@ -92,7 +92,7 @@ function editc_click_save()
     {
         // attempt to pick apart the string in the keywords textbox into an array
         // of strings, separated by comma
-        word_list = [name.toLowerCase()];
+        word_list = [];
         if (words !== "")
         {
             words = words.trim().split(",");
