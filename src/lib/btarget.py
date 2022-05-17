@@ -55,11 +55,11 @@ class BudgetTarget:
     def from_json(jdata):
         # check for the expected fields
         expected = [
-            ["value", float, "each budget target JSON must have a \"value\" float"],
-            ["type", str, "each budget target JSON must have a \"type\" string"]
+            ["value", [int, float], "each budget target JSON must have a \"value\" float"],
+            ["type", [str], "each budget target JSON must have a \"type\" string"]
         ]
         for e in expected:
-            assert e[0] in jdata and type(jdata[e[0]]) == e[1], e[2]
+            assert e[0] in jdata and type(jdata[e[0]]) in e[1], e[2]
 
         # check for the correct type string
         tstr = jdata["type"].lower()
@@ -71,5 +71,5 @@ class BudgetTarget:
             tt = BudgetTargetType.PERCENT_INCOME
 
         # invoke the constructor and return the object
-        return BudgetTarget(jdata["value"], ttype=tt)
+        return BudgetTarget(float(jdata["value"]), ttype=tt)
 

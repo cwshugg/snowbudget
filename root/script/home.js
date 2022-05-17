@@ -7,6 +7,7 @@ const bclass_expense_container = document.getElementById("bclass_expenses");
 const bclass_income_container = document.getElementById("bclass_income");
 const summary_container = document.getElementById("budget_summary");
 const btn_add_transaction = document.getElementById("btn_add_transaction");
+const btn_add_class = document.getElementById("btn_add_class");
 const btn_get_spreadsheet = document.getElementById("btn_get_spreadsheet");
 const savings_container = document.getElementById("savings");
 
@@ -46,6 +47,12 @@ function click_transaction_row(ev)
 function click_add_transaction(ev)
 {
     window.location.replace("addt.html");
+}
+
+// Invoked when the 'add class' button is clicked
+function click_add_class(ev)
+{
+    window.location.replace("addc.html");
 }
 
 // Invoked when the 'get spreadsheet' button is clicked.
@@ -132,6 +139,30 @@ function make_bclass_menu(bclass)
         }
         div.appendChild(tp);
     }
+    
+    return div;
+}
+
+// Puts together HTML to be placed at the bottom of a budget class's dropdown
+// content box.
+function make_bclass_bottom_menu(bclass)
+{
+    const div = document.createElement("div");
+    div.className = "button-container";
+
+    // add a button to edit the class
+    let btn_edit = document.createElement("button");
+    btn_edit.id = bclass.id + "_btn_edit";
+    btn_edit.className = "button-main button-light";
+    btn_edit.innerHTML = "Edit Class";
+    div.appendChild(btn_edit);
+
+    // give the button a callback function
+    btn_edit.addEventListener("click", function() {
+        // navigate to the edit page with the correct ID
+        let edit_url = "editc.html?class_id=" + bclass.id;
+        window.location.replace(edit_url);
+    });
     
     return div;
 }
@@ -555,10 +586,12 @@ async function menu_refresh(bclasses)
 {
     // enable the buttons
     btn_add_transaction.disabled = false;
+    btn_add_class.disabled = false;
     btn_get_spreadsheet.disabled = false;
 
     // add click listeners to the buttons
     btn_add_transaction.addEventListener("click", click_add_transaction);
+    btn_add_class.addEventListener("click", click_add_class);
     btn_get_spreadsheet.addEventListener("click", click_get_spreadsheet);
 }
 
@@ -632,6 +665,7 @@ async function budget_class_refresh(bclass)
         bclass_content.appendChild(make_bclass_menu(bclass));
         bclass_content.appendChild(make_bclass_history(bclass));
         bclass_content.appendChild(make_bclass_charts(bclass));
+        bclass_content.appendChild(make_bclass_bottom_menu(bclass));
     }
 }
 

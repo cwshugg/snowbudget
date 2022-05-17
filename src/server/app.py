@@ -31,6 +31,7 @@ from lib.config import Config
 from lib.budget import Budget
 from lib.bclass import BudgetClass, BudgetClassType
 from lib.transaction import Transaction
+from lib.btarget import BudgetTarget
 
 # Flask setup
 app = Flask(__name__)
@@ -453,9 +454,23 @@ def endpoint_create_class():
     kws = []
     for w in jdata["keywords"]:
         kws.append(str(w))
+
+    # if a target field was given, we'll try to parse it
+    tgt = None
+    if "target" in jdata:
+        # make sure the given field is a dictionary
+        tdata = jdata["target"]
+        if type(tdata) != dict:
+            return make_response_json(rstatus=400, msg="Invalid \"target\" field.")
+        # attempt to parse the target object and return it
+        try:
+            tgt = BudgetTarget.from_json(tdata)
+        except Exception as e:
+            return make_response_json(rstatus=400, msg="Failed to parse \"target\" content.")
     
     # create a new budget class object and attempt to add it to the budget
-    bclass = BudgetClass(jdata["name"], ctype, jdata["description"], keywords=kws)
+    bclass = BudgetClass(jdata["name"], ctype, jdata["description"],
+                         keywords=kws, target=tgt)
     b = get_budget()
     result = b.add_class(bclass)
     if not result.success:
@@ -683,6 +698,22 @@ def endpoint_edit_class():
     if "description" in jdata:
         bc.desc = jdata["description"]
         changes += 1
+
+    # if a target field was given, try to parse it
+    tgt = None
+    if "target" in jdata:
+        # make sure the given field is a dictionary
+        tdata = jdata["target"]
+        print("TARGET DATA: %s" % tdata)
+        if type(tdata) != dict:
+            return make_response_json(rstatus=400, msg="Invalid \"target\" field.")
+        # attempt to parse the target object and return it
+        try:
+            tgt = BudgetTarget.from_json(tdata)
+            bc.target = tgt
+            changes += 1
+        except Exception as e:
+            return make_response_json(rstatus=400, msg="Failed to parse \"target\" content.")
     
     # tally up the changes, save if necessary, and send back a response
     if changes > 0:

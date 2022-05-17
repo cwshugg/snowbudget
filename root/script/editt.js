@@ -173,6 +173,8 @@ async function editt_ui_init(tid)
     let bclasses = data.payload;
     bclasses.sort(function(c1, c2) { return c1.name.localeCompare(c2.name); });
     diagnostics_clear();
+
+    editt_btn_delete.disabled = false;
     
     // we'll iterate across each budget class and create dropdown options for
     // each of them in our dropdown menu. At the same time, we'll determine which

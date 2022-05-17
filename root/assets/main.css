@@ -159,6 +159,7 @@ button
 
 .button-container
 {
+    margin-bottom: 4px;
 }
 
 .button-main
@@ -192,6 +193,23 @@ button
 .button-main:disabled
 {
     color: var(--color-bg4);
+}
+
+.button-light
+{
+    background-color: var(--color-bg3);
+    color: var(--color-text1);
+}
+
+.button-light:hover:enabled
+{
+    background-color: var(--color-bg4);
+}
+
+.button-light:focus
+{
+    outline: none;
+    box-shadow: none;
 }
 
 /******************************* Collapsibles ********************************/
