@@ -127,6 +127,13 @@ function editc_click_save()
             float_to_dollar_string(bclass.target.value) !== float_to_dollar_string(tval))
         { jdata.target = {"type": ttype.toLowerCase(), "value": tval}; }
     }
+    // if there's NO target value, but the old version of the class DOES has a
+    // target, we'll indicate in our JSON object that we want to remove the
+    // target from the class
+    else if (bclass.target)
+    {
+        jdata.target = null;
+    }
 
     // set the class ID before sending
     jdata.class_id = bclass.id;
@@ -174,6 +181,8 @@ function editc_input_change()
             float_to_dollar_string(bclass.target.value) !== float_to_dollar_string(tval))
         { is_different = true; }
     }
+    else if (bclass.target)
+    { is_different = true; }
     // if a different is detected, toggle the button
     if (is_different)
     { editc_btn_save.disabled = false; }

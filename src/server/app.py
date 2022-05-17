@@ -702,19 +702,23 @@ def endpoint_edit_class():
     # if a target field was given, try to parse it
     tgt = None
     if "target" in jdata:
-        # make sure the given field is a dictionary
         tdata = jdata["target"]
-        print("TARGET DATA: %s" % tdata)
-        if type(tdata) != dict:
-            return make_response_json(rstatus=400, msg="Invalid \"target\" field.")
-        # attempt to parse the target object and return it
-        try:
-            tgt = BudgetTarget.from_json(tdata)
-            bc.target = tgt
+        # if the target is set to None, we'll set it in the class
+        if tdata == None:
+            bc.target = None
             changes += 1
-        except Exception as e:
-            return make_response_json(rstatus=400, msg="Failed to parse \"target\" content.")
-    
+        # otherwise, make sure the given field is a dictionary
+        else:
+            if type(tdata) != dict:
+                return make_response_json(rstatus=400, msg="Invalid \"target\" field.")
+            # attempt to parse the target object and return it
+            try:
+                tgt = BudgetTarget.from_json(tdata)
+                bc.target = tgt
+                changes += 1
+            except Exception as e:
+                return make_response_json(rstatus=400, msg="Failed to parse \"target\" content.")
+        
     # tally up the changes, save if necessary, and send back a response
     if changes > 0:
         b.update_class(bc)
