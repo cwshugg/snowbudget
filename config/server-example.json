@@ -1,7 +1,7 @@
 {
     "server_addr": "0.0.0.0",
     "server_port": 7669,
-    "server_root_dpath": "/home/snowmiser/snowbudget/root",
+    "server_root_dpath": "/root",
     "server_home_fname": "index.html",
     "server_home_auth_fname": "home.html",
     "server_public_files":
@@ -14,7 +14,7 @@
     ],
     "server_secret_key": "super_secret...",
 
-    "sb_config_fpath": "/home/snowmiser/snowbudget/config/example.json",
+    "sb_config_fpath": "/config/example.json",
     
     "auth_key": "some_key",
     "auth_jwt_key": "some_other_key",
@@ -22,7 +22,7 @@
     "ifttt_webhook_key": "yourIFTTTwebhookkey",
     "notif_webhook_event": "yourIFTTTwebhookevent",
     
-    "certs_enabled": true,
+    "certs_enabled": false,
     "certs_dpath": "/etc/letsencrypt/live/beacon.shugg.dev/",
     "certs_cert_fname": "fullchain.pem",
     "certs_key_fname": "privkey.pem",
