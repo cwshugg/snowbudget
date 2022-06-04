@@ -13,3 +13,9 @@ To run this app:
 2. Install Docker
 3. Run `docker compose up -d` 
 4. Navigate to http://localhost:8080.
+
+## Contributors
+
+Thanks a lot to Abhishek Sathiabalan for taking interest in the project and
+integrating Docker to make for better deployment!
+
