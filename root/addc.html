@@ -24,19 +24,19 @@
             </div>
 
             <!-- input fields -->
-            <div class="input-container">
+            <form class="input-container">
                 <!--<h3 class="color-acc2">Class Details</h3>-->
                 <!-- name input -->
                 <div>
-                    <input id="cname" class="input-main" placeholder="Name"></input>
+                    <input id="cname" class="input-main" placeholder="Name" required></input>
                 </div>
                 <!-- description input -->
                 <div>
-                    <input id="cdesc" class="input-main" placeholder="Description"></input>
+                    <input id="cdesc" class="input-main" placeholder="Description" required></input>
                 </div>
                 <!-- keywords input -->
                 <div>
-                    <input id="cwords" class="input-main" placeholder="Keywords (separate by comma)"></input>
+                    <input id="cwords" class="input-main" placeholder="Keywords (separate by comma)" required></input>
                 </div>
                 <!-- type input -->
                 <select id="ctype" class="dropdown-main" placeholder="Class Type">
@@ -60,7 +60,7 @@
                         <button id="btn_save" class="button-main" disabled>Save</button>
                     </div>
                 </div>
-            </div>
+            </form>
     
             <!-- JS imports -->
             <script type="text/javascript" src="script/helpers.js"></script>
