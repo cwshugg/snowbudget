@@ -1,7 +1,7 @@
 {
     "name": "Monthly Budget",
-    "save_location": "/home/snowmiser/snowbudget-save",
-    "backup_location": "/path/to/some/place/you/want/to/back/budget/data/up/to",
+    "save_location": "/save",
+    "backup_location": "/backup",
     "reset_dates":
     [
         "1-1",
@@ -16,7 +16,7 @@
         "10-1",
         "11-1",
         "12-1"
-    ],:
+    ],
     "surplus_savings":
     [
         {
