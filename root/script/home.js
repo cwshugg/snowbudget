@@ -21,15 +21,7 @@ function click_transaction_row(ev)
 {
     // pull out the correct table row that was clicked so we can find the
     // correct transaction
-    let tr = null;
-    for (let i = 0; i < ev.path.length; i++)
-    {
-        if (ev.path[i].className.includes("ttable-transaction-row"))
-        {
-            tr = ev.path[i];
-            break;
-        }
-    }
+    let tr = ev.currentTarget;
     // if we couldn't find anything, log and return
     if (tr == null)
     {

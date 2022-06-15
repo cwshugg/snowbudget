@@ -19,3 +19,9 @@ To run this app:
 Thanks a lot to Abhishek Sathiabalan for taking interest in the project and
 integrating Docker to make for better deployment!
 
+## TODO
+0. Add credentials manager UI
+1. Add code that goes out and gets all transactions from a particular financial institution in a month (?); how would they get categorized ? It would be a mix of expenses and income.
+2. Change add transactions so a user can select the date when a transaction occured
+3. Add an option for savings/budget.json to allow savings rate to be computed against your gross income
+4. Figure out why chart doesn't work on Docker but it does for Connor.
