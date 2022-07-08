@@ -47,6 +47,9 @@ class Budget:
         now = datetime.now()
         today_is_reset = nrd.month == now.month and nrd.day == now.day
 
+        # get the current save root path based on the current reset date
+        sroot = self.save_root_path()
+
         try:
             # if today is a reset day, we'll back up the config file itself to the
             # new backup location
@@ -57,9 +60,10 @@ class Budget:
             # if we fail to setup the backup location, don't panic
             pass
 
-        # get the config's save location and iterate through the directory's
-        # files to load in each budget class
-        for root, dirs, files in os.walk(conf.save_location):
+        # iterate through the previous period's directory's files to load in
+        # each budget class
+        yesterday = datetime.fromtimestamp(now.timestamp() - 86400)
+        for root, dirs, files in os.walk(self.save_root_path(dt=yesterday)):
             for f in files:
                 # if the file has the JSON extension, we'll try to load it as a
                 # budget class object
@@ -76,7 +80,8 @@ class Budget:
                                         bc.last_reset.year != nrd.year
                     if today_is_reset and class_needs_reset:
                         bc.reset()
-                        bc.save(os.path.join(root, f))
+                        # save the class to the *new* location
+                        bc.save(os.path.join(sroot, f))
         try:
             # attempt to initialize the backup location, and save all budget classes
             # to the backup location if they don't exist
@@ -104,7 +109,8 @@ class Budget:
         self.classes.append(bclass)
 
         # write out to a file
-        fpath = os.path.join(self.conf.save_location, bclass.to_file_name())
+        sroot = self.save_root_path()
+        fpath = os.path.join(sroot, bclass.to_file_name())
         bclass.save(fpath)
         # attempt to back up
         try:
@@ -117,12 +123,41 @@ class Budget:
     # Takes in a transaction and a budget class and adds it to the budget class,
     # then saves the budget class out to disk.
     def add_transaction(self, bclass, transaction):
-        bclass.add(transaction)
-        fpath = os.path.join(self.conf.save_location, bclass.to_file_name())
-        bclass.save(fpath)
-        # attempt to back up
+        # get the save path based on the transaction's timestamp. It's possible
+        # this will *not* be in the current budget period (i.e. after some other
+        # reset date). We'll check for this here and react accordingly
+        sroot = self.save_root_path(dt=transaction.timestamp)
+        fpath = os.path.join(sroot, bclass.to_file_name())
+        if (sroot != self.save_root_path()): # if transaction path != the current path
+            # in this case, we need to use the version of the budget class saved
+            # in the computed path (i.e., for a different reset date). To do this,
+            # we'll try to load in the file, if it exists
+            if os.path.isfile(fpath):
+                bc = None
+                try:
+                    bc = BudgetClass.load(fpath)
+                    bc.add(transaction)
+                    bc.save(fpath)
+                except Exception as e:
+                    m = "Failed to update budget class from different reset date: %s" % e
+                    return BudgetResult(success=False, msg=m)
+            else:
+                # if one doesn't exist yet for this different reset date, we'll
+                # create a copy of the current budget class, with this transaction
+                # as the only transaction in its history
+                bc = bclass.copy()
+                bc.history = []
+                bc.add(transaction)
+                bc.save(fpath)
+        else:
+            # if we're not saving to a different reset date within the budget,
+            # things are much easier - simply add and save the current class
+            bclass.add(transaction)
+            bclass.save(fpath)
+
+        # attempt to back up the class we just saved
         try:
-            bclass.save(self.backup_class_path(bclass))
+            bclass.save(self.backup_class_path(bclass, dt=transaction.timestamp))
         except Exception as e:
             m = "Failed to backup class: %s" % e
             return BudgetResult(success=True, msg=m)
@@ -194,7 +229,8 @@ class Budget:
         self.classes.pop(idx)
 
         # now, build the file path and delete the file
-        fpath = os.path.join(self.conf.save_location, bc.to_file_name())
+        sroot = self.save_root_path()
+        fpath = os.path.join(sroot, bc.to_file_name())
         os.remove(fpath)
         # attempt to back up
         try:
@@ -221,7 +257,8 @@ class Budget:
         
         # remove the transaction from the class, then save the budget class
         bc.remove(t)
-        fpath = os.path.join(self.conf.save_location, bc.to_file_name())
+        sroot = self.save_root_path()
+        fpath = os.path.join(sroot, bc.to_file_name())
         bc.save(fpath)
         # attempt to back up
         try:
@@ -245,17 +282,48 @@ class Budget:
             return result
         return BudgetResult(success=True)
 
+    # Takes in a timestamp (datetime.now() by default) and uses it to determine
+    # the current reset date, and from it, a path to the directory into which a
+    # budget object should be saved. If the directory doesn't exist, this
+    # function also creates it.
+    def save_root_path(self, dt=datetime.now()):
+        # using the given datetime, we'll iterate through the reset dates and
+        # determine which one to use for the directory path
+        d = self.conf.reset_dates[0]
+        best_score = None
+        for rd in self.conf.reset_dates:
+            # compute a difference between the month and the day. We'll select
+            # the reset date with the smallest positive value as the most
+            # recently-passed
+            diff = (dt.month - rd.month) + ((dt.day - rd.day) / 40.0)
+            if diff >= 0.0 and (best_score == None or diff < best_score):
+                best_score = diff
+                d = rd
+        
+        # construct the folder directory path, create it if necessary, and
+        # return it
+        dpath = self.conf.save_location + "/%d-%d-%d" % (dt.year, d.month, d.day)
+        assert not os.path.isfile(dpath), "save root path is a file: %s" % dpath
+        if not os.path.isdir(dpath):
+            os.mkdir(dpath)
+        return dpath
+
     # Attempts to set up the current backup location based on the config's
     # 'backup_location' entry. Returns the path to the backup directory.
-    def backup_setup(self):
-        # get the most recently-passed reset date - we'll use this to create the
-        # directory name for present backups
-        nrd = self.conf.reset_dates[0]
-        lrd = self.conf.reset_dates[-1]
-        now = datetime.now()
-        rd = nrd if nrd.month == now.month and nrd.day == now.day else lrd
-        dpath = "%s_%d-%d-%d" % (self.conf.backup_location, now.year,
-                                 rd.month, rd.day)
+    def backup_setup(self, dt=datetime.now()):
+        # we'll compute the same kind of score we do above in 'save_root_path'
+        # to determine which reset date to use for backup
+        d = self.conf.reset_dates[0]
+        best_score = None
+        for rd in self.conf.reset_dates:
+            diff = (dt.month - rd.month) + ((dt.day - rd.day) / 40.0)
+            if diff >= 0.0 and (best_score == None or diff < best_score):
+                best_score = diff
+                d = rd
+        
+        # with the correct date, build a backup file path
+        dpath = "%s/%d-%d-%d" % (self.conf.backup_location, dt.year,
+                                 d.month, d.day)
 
         # if the directory doesn't exist, create it
         assert not os.path.isfile(dpath), "backup location is a file"
@@ -264,9 +332,10 @@ class Budget:
         return dpath
     
     # Takes in a budget class and returns the path at which it should be saved.
-    def backup_class_path(self, bclass):
-        dpath = self.backup_setup()
+    def backup_class_path(self, bclass, dt=datetime.now()):
+        dpath = self.backup_setup(dt=dt)
         fpath = os.path.join(dpath, bclass.to_file_name())
+        print("BACKUP CLASS PATH: %s" % fpath)
         return fpath
     
     # Takes in a file path and attempts to create an Excel file for the entire
