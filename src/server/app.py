@@ -769,7 +769,7 @@ def endpoint_edit_transaction():
     # check to make sure the types of any present fields are correct
     changes = 0
     expect = [["price", [float, int]], ["vendor", str], ["description", str],
-              ["recurring", bool]]
+              ["timestamp", [int, float]], ["recurring", bool]]
     for e in expect:
         key = e[0]
         if key in jdata:
@@ -794,6 +794,14 @@ def endpoint_edit_transaction():
     if jdata["description"] != None:
         t.desc = jdata["description"]
         changes += 1
+    if jdata["timestamp"] != None:
+        # try to convert the given timestamp integer into a datetime object
+        try:
+            ts = datetime.fromtimestamp(jdata["timestamp"])
+            t.timestamp = ts
+            changes += 1
+        except Exception as e:
+            return make_response_json(success=False, msg="Invalid JSON fields.")
     if jdata["recurring"] != None:
         t.recurring = jdata["recurring"]
         changes += 1

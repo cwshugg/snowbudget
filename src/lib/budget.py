@@ -335,7 +335,6 @@ class Budget:
     def backup_class_path(self, bclass, dt=datetime.now()):
         dpath = self.backup_setup(dt=dt)
         fpath = os.path.join(dpath, bclass.to_file_name())
-        print("BACKUP CLASS PATH: %s" % fpath)
         return fpath
     
     # Takes in a file path and attempts to create an Excel file for the entire

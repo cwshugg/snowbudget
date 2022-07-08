@@ -9,6 +9,7 @@ const editt_btn_update = document.getElementById("btn_update");
 const editt_input_price = document.getElementById("tprice");
 const editt_input_vendor = document.getElementById("tvendor");
 const editt_input_desc = document.getElementById("tdesc");
+const editt_input_date = document.getElementById("tdate");
 const editt_input_recur = document.getElementById("trecur");
 const editt_class_dropdown = document.getElementById("tclass");
 
@@ -30,10 +31,11 @@ function editt_click_update()
     let price = editt_input_price.value;
     let vendor = editt_input_vendor.value;
     let desc = editt_input_desc.value;
+    let date = editt_input_date.value;
     let bcid = editt_class_dropdown.value;
     let recur = editt_input_recur.checked;
     
-    // if the price or class ID are blank, don't proceed
+    // if the price, class ID, or date, are blank, don't proceed
     if (price === "" || bcid === "")
     { return; }
 
@@ -51,6 +53,27 @@ function editt_click_update()
         return;
     }
 
+    // attempt to convert the date to a number of seconds
+    let ts = null;
+    let d1 = null;
+    try
+    {
+        d1 = new Date(date + "T00:00");
+        ts = d1.getTime() / 1000;
+    }
+    catch (error)
+    {
+        diagnostics_add_error("Couldn't parse the given date value.");
+        return;
+    }
+    
+    // convert the original timestamp and determine if the timestamps differ
+    // enough to be a different day
+    let d2 = new Date(transaction.timestamp * 1000);
+    let dates_match = d1.getFullYear() == d2.getFullYear() &&
+                      d1.getMonth() == d2.getMonth() &&
+                      d1.getDate() == d2.getDate();
+
     // put together the JSON object, containing only the revisions
     let jdata = {"transaction_id": transaction.id}
     if (price !== transaction.price)
@@ -59,6 +82,8 @@ function editt_click_update()
     { jdata.vendor = vendor; }
     if (desc !== transaction.description)
     { jdata.description = desc; }
+    if (!dates_match)
+    { jdata.timestamp = ts; }
     if (bcid !== bclass_id)
     { jdata.class_id = bcid; }
     if (recur !== transaction.recurring)
@@ -112,6 +137,7 @@ function editt_input_change()
     let price = editt_input_price.value;
     let vendor = editt_input_vendor.value;
     let desc = editt_input_desc.value;
+    let date = editt_input_date.value;
     let bcid = editt_class_dropdown.value;
     let recur = editt_input_recur.checked;
     
@@ -129,9 +155,16 @@ function editt_input_change()
         return;
     }
 
+    // convert dates to compare
+    let d1 = new Date(date + "T00:00");
+    let d2 = new Date(transaction.timestamp * 1000);
+    let dates_match = d1.getFullYear() == d2.getFullYear() &&
+                      d1.getMonth() == d2.getMonth() &&
+                      d1.getDate() == d2.getDate();
+
     if (price === transaction.price && vendor === transaction.vendor &&
-        desc === transaction.description && bcid === bclass_id &&
-        recur === transaction.recurring)
+        desc === transaction.description && dates_match &&
+        bcid === bclass_id && recur === transaction.recurring)
     { btn_update.disabled = true; }
     else
     { btn_update.disabled = false; }
@@ -214,6 +247,15 @@ async function editt_ui_init(tid)
     editt_input_price.value = transaction.price;
     editt_input_vendor.value = transaction.vendor;
     editt_input_desc.value = transaction.description;
+    const ts = new Date(transaction.timestamp * 1000);
+    let ts_y = "" + ts.getFullYear();
+    let ts_m = "" + (ts.getMonth() + 1);
+    if (ts_m.length < 2)
+    { ts_m = "0" + ts_m; }
+    let ts_d = "" + ts.getDate();
+    if (ts_d.length < 2)
+    { ts_d = "0" + ts_d; }
+    editt_input_date.value = ts_y + "-" + ts_m + "-" + ts_d;
     editt_input_recur.checked = transaction.recurring == true;
 }
 
@@ -236,6 +278,7 @@ window.onload = function()
     editt_input_price.addEventListener("input", editt_input_change);
     editt_input_vendor.addEventListener("input", editt_input_change);
     editt_input_desc.addEventListener("input", editt_input_change);
+    editt_input_date.addEventListener("input", editt_input_change);
     editt_input_recur.addEventListener("input", editt_input_change);
     editt_class_dropdown.addEventListener("change", editt_input_change);
     editt_ui_init(tid);

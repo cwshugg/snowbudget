@@ -8,6 +8,7 @@ const addt_btn_save = document.getElementById("btn_save");
 const addt_input_price = document.getElementById("tprice");
 const addt_input_vendor = document.getElementById("tvendor");
 const addt_input_desc = document.getElementById("tdesc");
+const addt_input_date = document.getElementById("tdate");
 const addt_input_recur = document.getElementById("trecur");
 const addt_class_dropdown = document.getElementById("tclass");
 
@@ -26,10 +27,11 @@ function addt_click_save()
     let price = addt_input_price.value;
     let vendor = addt_input_vendor.value;
     let desc = addt_input_desc.value;
+    let date = addt_input_date.value;
     let bcid = addt_class_dropdown.value;
     
-    // if price or class ID are blank, don't proceed
-    if (price === "" || bcid === "")
+    // if price, class ID, or date are blank, don't proceed
+    if (price === "" || bcid === "" || date === "")
     { return; }
 
     // attempt to convert the price to a float
@@ -46,6 +48,16 @@ function addt_click_save()
         return;
     }
 
+    // attempt to convert the date to a number of seconds
+    let ts = Date.now() / 1000;
+    try
+    { ts = new Date(date + "T00:00").getTime() / 1000; }
+    catch (error)
+    {
+        diagnostics_add_error("Couldn't parse the given date value.");
+        return;
+    }
+
     // extract the recurring checkbox value
     const recur = addt_input_recur.checked;
 
@@ -55,7 +67,7 @@ function addt_click_save()
         "price": price,
         "vendor": vendor,
         "description": desc,
-        "timestamp": Math.round(Date.now() / 1000),
+        "timestamp": Math.round(ts),
         "recurring": recur
     };
 
@@ -129,6 +141,10 @@ async function addt_ui_init()
     // if we found a default category, auto-select it
     if (default_idx > -1)
     { addt_class_dropdown.selectedIndex = default_idx; }
+
+    // set the date selector's value to the current date
+    const now = new Date();
+    addt_input_date.value = now.toISOString().slice(0, 10);
 }
 
 // Window initialization function
