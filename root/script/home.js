@@ -474,12 +474,6 @@ async function summary_refresh(bclasses, reset_dates)
     total = total_income - total_expense;
     
     let elem = document.createElement("p");
-    // create an element for the total expenses
-    let total_expense_elem = document.createElement("b");
-    total_expense_elem.className = "color-expense1";
-    total_expense_elem.innerHTML = "Total expenses: ";
-    elem.appendChild(total_expense_elem);
-    elem.innerHTML += float_to_dollar_string(total_expense) + "<br>";
 
     // create an element for the total income
     let total_income_elem = document.createElement("b");
@@ -488,6 +482,13 @@ async function summary_refresh(bclasses, reset_dates)
     elem.appendChild(total_income_elem);
     elem.innerHTML += float_to_dollar_string(total_income) + "<br>";
 
+    // create an element for the total expenses
+    let total_expense_elem = document.createElement("b");
+    total_expense_elem.className = "color-expense1";
+    total_expense_elem.innerHTML = "Total expenses: ";
+    elem.appendChild(total_expense_elem);
+    elem.innerHTML += float_to_dollar_string(total_expense) + "<br>";
+ 
     // create an element for the net value
     let total_elem = document.createElement("b");
     // create a specific message depending on the total net value
