@@ -467,12 +467,17 @@ def add_transaction():
     if bclass == None:
         print("Failed to find a budget class.")
         return
+    
+    # get the datetime on which the transaction occurred
+    ts = input_date("Timestamp (skip to use *now* as the timestamp):", blank_ok=True)
+    if ts == None:
+        ts = datetime.now()
 
     # ask if it's a recurring transaction
     recur = input_boolean("Recurring?")
 
     # add a transaction object to the correct bclass and save it
-    t = Transaction(price, vendor=vendor, description=desc, recur=recur)
+    t = Transaction(price, vendor=vendor, description=desc, timestamp=ts, recur=recur)
     result = budget.add_transaction(bclass, t)
     if not result.success:
         print("Failed to add a new transaction: %s" % result.message)
