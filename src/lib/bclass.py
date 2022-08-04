@@ -38,7 +38,6 @@ class BudgetClass:
         self.keywords = keywords    # keywords to identify this class
         self.history = history      # transaction history
         self.target = target        # target amount to save
-        self.last_reset = None      # last time the class was reset (timestamp)
         # we'll generate a unique ID string for this budget class if one wasn't
         # passed into the function
         self.bcid = bcid
@@ -83,10 +82,6 @@ class BudgetClass:
         # add a 'target' if one exists
         if self.target != None:
             jdata["target"] = self.target.to_json()
-
-        # if we have a 'last_reset' value, add that to the JSON data as well
-        if self.last_reset != None:
-            jdata["last_reset"] = self.last_reset.timestamp()
         return jdata
     
     # Used to create a BudgetClass object from raw JSON data.
@@ -118,12 +113,6 @@ class BudgetClass:
         # if the JSON has a 'target' field, save it
         if "target" in jdata:
             c.target = BudgetTarget.from_json(jdata["target"])
-        
-        # if the JSON data has a 'last_reset' field, save that as well
-        if "last_reset" in jdata:
-            lr = jdata["last_reset"]
-            assert type(lr) in [int, float], "the \"last_reset\" must be an int or float."
-            c.last_reset = datetime.fromtimestamp(float(lr))
         
         # try to extract the list of history objects and add them to the new
         # budget class object
@@ -201,9 +190,8 @@ class BudgetClass:
                 # adjust the transaction's date to the the current one
                 t.timestamp = datetime.now()
                 new_history.append(t)
-        # update the internal history array and set our 'last_reset' timestamp
+        # update the internal history array
         self.history = new_history
-        self.last_reset = datetime.now()
 
     
     # Returns a list of all the class's transactions in sorted order by

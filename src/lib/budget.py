@@ -60,45 +60,54 @@ class Budget:
             # if we fail to setup the backup location, don't panic
             pass
 
-        # iterate through the previous period's directory's files to load in
-        # each budget class
-        day = datetime.fromtimestamp(now.timestamp() - 86400)
-        for root, dirs, files in os.walk(self.save_root_path(dt=day)):
+        # pass through today's save location and load any existing budget
+        # classes, while also keeping a count of the number we load in
+        current_class_count = 0
+        for root, dirs, files in os.walk(sroot):
             for f in files:
-                # if the file has the JSON extension, we'll try to load it as a
-                # budget class object
                 if f.lower().endswith(".json") and "config" not in f.lower():
-                    # if the class exists in *today's* save path, load that
-                    # instead. If it doesn't, we'll use yesterday's. This
-                    # prevents multiple resets on the same reset day.
-                    lpath = os.path.join(root, f)
-                    if os.path.isfile(os.path.join(sroot, f)):
-                        lpath = os.path.join(sroot, f)
-                    bc = BudgetClass.load(lpath)
+                    bc = BudgetClass.load(os.path.join(root, f))
                     self.classes.append(bc)
-                    
-                    # if today is a reset day AND the class's last reset date
-                    # was before today (meaning we haven't yet reset this class
-                    # for this cycle), remove all non-recurring transactions and
-                    # write the budget class back out to disk
-                    class_needs_reset = bc.last_reset == None or \
-                                        bc.last_reset.month != nrd.month or \
-                                        bc.last_reset.day != nrd.day or \
-                                        bc.last_reset.year != nrd.year
-                    if today_is_reset and class_needs_reset:
+                    current_class_count += 1
+
+        # now, if today is a reset day, we'll walk through yesterday's
+        # directory and load in any classes that should be carried over
+        if today_is_reset:
+            yesterday = datetime.fromtimestamp(now.timestamp() - 86400)
+            for root, dirs, files in os.walk(self.save_root_path(dt=yesterday)):
+                for f in files:
+                    # if the file has the JSON extension, we'll try to load it as a
+                    # budget class object
+                    if f.lower().endswith(".json") and "config" not in f.lower():
+                        # load the budget class, and skip it if a copy already
+                        # exists in today's save location
+                        bc = BudgetClass.load(os.path.join(root, f))
+                        already_exists = False
+                        for c in self.classes:
+                            # if a match is found, we'll skip this one
+                            if bc.bcid.lower() == c.bcid.lower():
+                                already_exists = True
+                                break
+                        if already_exists:
+                            continue
+
+                        # otherwise, if the class doesn't already exist in the
+                        # new save location, we'll reset the class and write it
+                        # out to disk
                         bc.reset()
-                        # save the class to the *new* location
                         bc.save(os.path.join(sroot, f))
-        try:
-            # attempt to initialize the backup location, and save all budget classes
-            # to the backup location if they don't exist
-            for bc in self.classes:
-                fpath = self.backup_class_path(bc)
-                if not os.path.isfile(fpath):
-                    bc.save(self.backup_class_path(bc))
-        except Exception as e:
-            # if we fail to set up the backup location, don't panic
-            pass
+                        self.classes.append(bc)
+
+            try:
+                # attempt to initialize the backup location, and save all budget classes
+                # to the backup location if they don't exist
+                for bc in self.classes:
+                    fpath = self.backup_class_path(bc)
+                    if not os.path.isfile(fpath):
+                        bc.save(self.backup_class_path(bc))
+            except Exception as e:
+                # if we fail to set up the backup location, don't panic
+                pass
     
     # Used to iterate through the budget's classes.
     def __iter__(self):
