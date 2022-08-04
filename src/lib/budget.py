@@ -62,14 +62,21 @@ class Budget:
 
         # iterate through the previous period's directory's files to load in
         # each budget class
-        yesterday = datetime.fromtimestamp(now.timestamp() - 86400)
-        for root, dirs, files in os.walk(self.save_root_path(dt=yesterday)):
+        day = datetime.fromtimestamp(now.timestamp() - 86400)
+        for root, dirs, files in os.walk(self.save_root_path(dt=day)):
             for f in files:
                 # if the file has the JSON extension, we'll try to load it as a
                 # budget class object
                 if f.lower().endswith(".json") and "config" not in f.lower():
-                    bc = BudgetClass.load(os.path.join(root, f))
+                    # if the class exists in *today's* save path, load that
+                    # instead. If it doesn't, we'll use yesterday's. This
+                    # prevents multiple resets on the same reset day.
+                    lpath = os.path.join(root, f)
+                    if os.path.isfile(os.path.join(sroot, f)):
+                        lpath = os.path.join(sroot, f)
+                    bc = BudgetClass.load(lpath)
                     self.classes.append(bc)
+                    
                     # if today is a reset day AND the class's last reset date
                     # was before today (meaning we haven't yet reset this class
                     # for this cycle), remove all non-recurring transactions and
