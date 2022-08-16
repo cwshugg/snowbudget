@@ -141,7 +141,7 @@ def input_number(prompt, upper=None, lower=None, color=C_YELLOW):
 def input_date(prompt="Timestamp:", blank_ok=False):
     while True:
         text = input_wrapper(prompt, blank_ok=blank_ok)
-        if blank_ok and text == None:
+        if blank_ok and text == "":
             return None
         
         # attempt to parse as YYYY-MM-DD
@@ -252,6 +252,9 @@ def parse_args():
     p.add_argument("--config", metavar="CONFIG_JSON", required=True,
                    help="Takes in the path to your snowbudget configuration file.",
                    default=None, nargs=1, type=str)
+    p.add_argument("--date", metavar="YYYY-MM-DD",
+                   help="Sets the date used to load/save the correct budget files.",
+                   default=None, nargs=1, type=str)
     p.add_argument("--json",
                    help="Prints a JSON representation of all budget classes.",
                    default=False, action="store_true")
@@ -287,6 +290,17 @@ def parse_args():
                    default=False, action="store_true")
 
     return vars(p.parse_args())
+
+# Takes in a string from '--date' and attempts to parse it using the YYYY-MM-DD
+# date format.
+def parse_date(dstr):
+    # attempt to parse as YYYY-MM-DD
+    try:
+        dt = datetime.strptime(dstr, "%Y-%m-%d")
+        return dt
+    except Exception as e:
+        fatality(msg="The --date option requires this format: YYYY-MM-DD",
+                 exception=e)
 
 
 # =========================== Listing/Summarizing ============================ #
@@ -469,9 +483,11 @@ def add_transaction():
         return
     
     # get the datetime on which the transaction occurred
-    ts = input_date("Timestamp (skip to use *now* as the timestamp):", blank_ok=True)
+    ts = input_date("Timestamp (skip to use %d-%d-%d as the timestamp):" %
+                    (budget.datetime.year, budget.datetime.month, budget.datetime.day),
+                    blank_ok=True)
     if ts == None:
-        ts = datetime.now()
+        ts = budget.datetime
 
     # ask if it's a recurring transaction
     recur = input_boolean("Recurring?")
@@ -708,13 +724,19 @@ def main():
     except Exception as e:
         fatality(msg="failed to initialize config", exception=e)
 
+    # if '--date' was given, we'll attempt to parse it and save a datetime
+    # to represent what the user requested
+    budget_datetime = datetime.now()
+    if "date" in args and args["date"]:
+        budget_datetime = parse_date(args["date"][0])
+
     # now, initialize a Budget object
     global budget
     try:
-        budget = Budget(config)
+        budget = Budget(config, dt=budget_datetime)
     except Exception as e:
         fatality(msg="failed to initialize budget", exception=e)
-
+ 
     # if '--json' was given, we'll dump json
     if "json" in args and args["json"]:
         list_json()
@@ -726,12 +748,12 @@ def main():
         exit()
     
     # if a backup path was given, we'll try to copy all files
-    if "backup" in args and args["backup"] != None:
+    if "backup" in args and args["backup"]:
         backup_budget(args["backup"][0])
         exit()
 
     # if an excel path is specified, we'll try to convert, then exit
-    if "to_excel" in args and args["to_excel"] != None:
+    if "to_excel" in args and args["to_excel"]:
         save_to_excel(args["to_excel"][0])
         exit()
 

@@ -40,9 +40,9 @@ config = None   # main server config
 # ============================= Helper Functions ============================= #
 # Used to retrieve a fresh Budget object from the configuration path stored in
 # the server's config module.
-def get_budget():
+def get_budget(dt=datetime.now()):
     conf = Config(config.sb_config_fpath)
-    return Budget(conf)
+    return Budget(conf, dt=dt)
 
 # Takes a dictionary of data and adds an optional message to it, then packs it
 # all into a Flask Response object.
@@ -151,7 +151,6 @@ def server_init():
 # Resource: https://pythonise.com/series/learning-flask/python-before-after-request
 @app.before_request
 def pre_process():
-    pass
     # extract JSON data, if any
     jdata = parse_request_json(request)
     session["jdata"] = jdata
@@ -162,6 +161,13 @@ def pre_process():
     if user != None:
         log_write("User \"%s\" is making a request (privilege: %d)." %
                   (user.username, user.privilege))
+
+    # check for a specified date
+    session["datetime"] = datetime.now()
+    if jdata and "datetime" in jdata and jdata["datetime"]:
+        dt = jdata["datetime"]
+        if type(dt) in [float, int]:
+            session["datetime"] = datetime.fromtimestamp(dt)
 
     # initialize the "notify" field
     if jdata != None:
@@ -264,14 +270,14 @@ def endpoint_auth_check():
 
 # ================================ Retrieval ================================= #
 # Used to retrieve ALL budget classes.
-@app.route("/get/all", methods = ["GET"])
+@app.route("/get/all", methods = ["GET", "POST"])
 def endpoint_get_all():
     user = get_user(session)
     if user == None:
         return make_response_json(rstatus=404)
 
     # invoke the API to retrieve *all* budget classes as a combined JSON object
-    b = get_budget()
+    b = get_budget(dt=session["datetime"])
     classes = b.to_json()
     return make_response_json(jdata=classes)
 
@@ -295,7 +301,7 @@ def get_helper(field):
         return make_response_json(success=False, msg="Missing JSON fields.")
     
     # invoke the API to search for a matching class 
-    b = get_budget()
+    b = get_budget(dt=session["datetime"])
     result = None
     if field == "class_id":
         result = b.get_class(jdata[field])
@@ -320,42 +326,42 @@ def endpoint_get_transaction():
     return get_helper("transaction_id")
 
 # Used to retrieve a listing of the budget cycle's reset dates.
-@app.route("/get/resets", methods = ["GET"])
+@app.route("/get/resets", methods = ["GET", "POST"])
 def endpoint_get_resets():
     user = get_user(session)
     if user == None:
         return make_response_json(rstatus=404)
 
     # get the reset dates and build a JSON object to return
-    b = get_budget()
+    b = get_budget(dt=session["datetime"])
     result = []
     for rd in b.reset_dates:
         result.append(rd.timestamp())
     return make_response_json(jdata=result)
 
 # Used to retrieve a listing of the budget's savings categories.
-@app.route("/get/savings", methods = ["GET"])
+@app.route("/get/savings", methods = ["GET", "POST"])
 def endpoint_get_savings():
     user = get_user(session)
     if user == None:
         return make_response_json(rstatus=404)
 
     # get the reset dates and build a JSON object to return
-    b = get_budget()
+    b = get_budget(dt=session["datetime"])
     result = []
     for sc in b.savings:
         result.append(sc.to_json())
     return make_response_json(jdata=result)
 
 # Used to build and return an Excel spreadsheet version of the budget.
-@app.route("/get/spreadsheet", methods = ["GET"])
+@app.route("/get/spreadsheet", methods = ["GET", "POST"])
 def endpoint_get_spreadsheet():
     user = get_user(session)
     if user == None:
         return make_response_json(rstatus=404)
 
     # attempt to create a "budget.xlsx" in the budget's save location
-    b = get_budget()
+    b = get_budget(dt=session["datetime"])
     sname = ".budget.xlsx"
     spath = os.path.join(config.server_root_dpath, sname)
     b.write_to_excel(spath)
@@ -385,7 +391,7 @@ def search_helper(mode):
         return make_response_json(success=False, msg="Missing JSON fields.")
     
     # invoke the budget API to search for classes
-    b = get_budget()
+    b = get_budget(dt=session["datetime"])
     matches = []
     result = None
     mode = mode.lower()
@@ -471,7 +477,7 @@ def endpoint_create_class():
     # create a new budget class object and attempt to add it to the budget
     bclass = BudgetClass(jdata["name"], ctype, jdata["description"],
                          keywords=kws, target=tgt)
-    b = get_budget()
+    b = get_budget(dt=session["datetime"])
     result = b.add_class(bclass)
     if not result.success:
         m = "Failed: %s" % result.msg
@@ -500,7 +506,7 @@ def endpoint_create_transaction():
     jdata["price"] = float(jdata["price"]) # make sure the price is a float
 
     # first, search for the class, given its ID (make a shallow copy)
-    b = get_budget()
+    b = get_budget(dt=session["datetime"])
     result = b.get_class(jdata["class_id"])
     if not result.success:
         m = "Failed: %s" % result.message
@@ -548,7 +554,7 @@ def endpoint_create_transaction_search():
     jdata["price"] = float(jdata["price"]) # make sure the price is a float
 
     # first, search for the class, given its ID (make a shallow copy)
-    b = get_budget()
+    b = get_budget(dt=session["datetime"])
     result = b.search_class(jdata["query"])
     if not result.success:
         m = "Failed: %s" % result.message
@@ -594,7 +600,7 @@ def delete_helper(field):
         return make_response_json(success=False, msg="Missing JSON fields.")
     
     # search for the corresponding object with the given ID
-    b = get_budget()
+    b = get_budget(dt=session["datetime"])
     result = None
     if field == "class_id":
         result = b.get_class(jdata[field])
@@ -656,7 +662,7 @@ def endpoint_edit_class():
         return make_response_json(success=False, msg="Missing JSON fields.")
 
     # search for the transaction
-    b = get_budget()
+    b = get_budget(dt=session["datetime"])
     result = b.get_class(jdata["class_id"])
     if not result.success:
         m = "Failed: %s" % result.message
@@ -745,7 +751,7 @@ def endpoint_edit_transaction():
         return make_response_json(success=False, msg="Missing JSON fields.")
 
     # search for the transaction
-    b = get_budget()
+    b = get_budget(dt=session["datetime"])
     result = b.get_transaction(jdata["transaction_id"])
     if not result.success:
         m = "Failed: %s" % result.message

@@ -33,27 +33,33 @@ class BudgetResult:
 # Budget class
 class Budget:
     # Takes in the Config object that was parsed prior to this object's
-    # creation.
-    def __init__(self, conf):
+    # creation. Takes in an optional datetime used to retrieve a specific
+    # reset period's budget classes.
+    def __init__(self, conf, dt=datetime.now()):
         self.conf = conf
         self.classes = []
         self.savings = conf.surplus_savings
         self.reset_dates = conf.reset_dates
+        self.datetime = dt
 
         # before we load the classes, we need to know if today is a reset date
-        # for the budget. If it is, we'll delete all transactions and start
-        # saving to a new backup location
+        # for the budget. If it is, and the given datetime matches today,
+        # we'll delete all transactions and start saving to a new backup
+        # location
         nrd = self.conf.reset_dates[0]
         now = datetime.now()
-        today_is_reset = nrd.month == now.month and nrd.day == now.day
+        today_is_reset = nrd.month == now.month and nrd.day == now.day and \
+                         (now.year == self.datetime.year and \
+                          now.month == self.datetime.month and \
+                          now.day == self.datetime.day)
 
         # get the current save root path based on the current reset date
-        sroot = self.save_root_path()
+        sroot = self.save_root_path(dt=self.datetime)
 
         try:
             # if today is a reset day, we'll back up the config file itself to the
             # new backup location
-            bdpath = self.backup_setup()
+            bdpath = self.backup_setup(dt=self.datetime)
             if today_is_reset:
                 shutil.copy(self.conf.fpath, os.path.join(bdpath, "config.json"))
         except Exception as e:
@@ -125,7 +131,7 @@ class Budget:
         self.classes.append(bclass)
 
         # write out to a file
-        sroot = self.save_root_path()
+        sroot = self.save_root_path(self.datetime)
         fpath = os.path.join(sroot, bclass.to_file_name())
         bclass.save(fpath)
         # attempt to back up
@@ -144,7 +150,7 @@ class Budget:
         # reset date). We'll check for this here and react accordingly
         sroot = self.save_root_path(dt=transaction.timestamp)
         fpath = os.path.join(sroot, bclass.to_file_name())
-        if (sroot != self.save_root_path()): # if transaction path != the current path
+        if (sroot != self.save_root_path(self.datetime)): # if transaction path != the current path
             # in this case, we need to use the version of the budget class saved
             # in the computed path (i.e., for a different reset date). To do this,
             # we'll try to load in the file, if it exists
@@ -245,7 +251,7 @@ class Budget:
         self.classes.pop(idx)
 
         # now, build the file path and delete the file
-        sroot = self.save_root_path()
+        sroot = self.save_root_path(self.datetime)
         fpath = os.path.join(sroot, bc.to_file_name())
         os.remove(fpath)
         # attempt to back up
@@ -273,7 +279,7 @@ class Budget:
         
         # remove the transaction from the class, then save the budget class
         bc.remove(t)
-        sroot = self.save_root_path()
+        sroot = self.save_root_path(self.datetime)
         fpath = os.path.join(sroot, bc.to_file_name())
         bc.save(fpath)
         # attempt to back up
