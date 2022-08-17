@@ -11,11 +11,13 @@ const addc_input_words = document.getElementById("cwords");
 const addc_type_dropdown = document.getElementById("ctype");
 const addc_target_type_dropdown = document.getElementById("ctarget_type");
 const addc_target_input_value = document.getElementById("ctarget_val");
+let datetime = null;
 
 // Invoked when the 'cancel' button is clicked.
 function addc_click_cancel()
 {
-    window.location.replace("home.html");
+    const url = "home.html?" + get_datetime_url_string(datetime);
+    window.location.replace(url);
 }
 
 // Invoked when the 'save' button is clicked.
@@ -54,7 +56,8 @@ function addc_click_save()
         "name": name,
         "description": desc,
         "type": type,
-        "keywords": word_list
+        "keywords": word_list,
+        "datetime": datetime.getTime() / 1000.0
     }
     
     // if a target value was given, we'll add this to the JSON payload
@@ -97,7 +100,7 @@ function addc_click_save()
 
 // ============================= Initialization ============================= //
 // Asynchronously retrieves the back-end data and updates the display.
-async function addc_ui_init()
+async function addc_ui_init(dt)
 {
     addc_btn_save.disabled = false;
     addc_btn_cancel.disabled = false;
@@ -134,8 +137,9 @@ async function addc_ui_init()
 // Window initialization function
 window.onload = function()
 {
+    datetime = get_datetime_from_url();
     addc_btn_cancel.addEventListener("click", addc_click_cancel);
     addc_btn_save.addEventListener("click", addc_click_save);
-    addc_ui_init();
+    addc_ui_init(datetime);
 }
 

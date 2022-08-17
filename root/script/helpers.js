@@ -65,3 +65,24 @@ function bclass_sum(bclass)
     return sum;
 }
 
+// ================================ Datetime ================================ //
+// Returns a Date object, taken from the 'datetime' URL parameter. Returns the
+// current datetime if no parameter was found.
+function get_datetime_from_url()
+{
+    // retrieve the datetime from the URL, if it's given. If it's not given,
+    // we'll just use the current datetime
+    let dt = new Date();
+    const params = new URLSearchParams(window.location.search);
+    if (params.has("datetime"))
+    { dt = new Date(params.get("datetime") * 1000.0); }
+    return dt;
+}
+
+// Converts the given date to Unix epoch seconds and creates a string for the
+// "datetime" URL parameter.
+function get_datetime_url_string(dt)
+{
+    return "datetime=" + (dt.getTime() / 1000.0);
+}
+

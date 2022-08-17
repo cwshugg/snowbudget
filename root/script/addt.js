@@ -11,11 +11,13 @@ const addt_input_desc = document.getElementById("tdesc");
 const addt_input_date = document.getElementById("tdate");
 const addt_input_recur = document.getElementById("trecur");
 const addt_class_dropdown = document.getElementById("tclass");
+let datetime = null;
 
 // Invoked when the 'cancel' button is clicked.
 function addt_click_cancel()
 {
-    window.location.replace("home.html");
+    const url = "home.html?" + get_datetime_url_string(datetime);
+    window.location.replace(url);
 }
 
 // Invoked when the 'save' button is clicked.
@@ -68,7 +70,8 @@ function addt_click_save()
         "vendor": vendor,
         "description": desc,
         "timestamp": Math.round(ts),
-        "recurring": recur
+        "recurring": recur,
+        "datetime": datetime.getTime() / 1000.0
     };
 
     // send a request to create the transaction
@@ -90,10 +93,10 @@ function addt_click_save()
 
 // ============================= Initialization ============================= //
 // Asynchronously retrieves the back-end data and updates the display.
-async function addt_ui_init()
+async function addt_ui_init(dt)
 {
     diagnostics_add_message("Contacting server...");
-    let data = await retrieve_data()
+    let data = await retrieve_data(dt)
     if (!data)
     {
         // show an error message
@@ -142,16 +145,16 @@ async function addt_ui_init()
     if (default_idx > -1)
     { addt_class_dropdown.selectedIndex = default_idx; }
 
-    // set the date selector's value to the current date
-    const now = new Date();
-    addt_input_date.value = now.toISOString().slice(0, 10);
+    // set the date selector's value to the given datetime
+    addt_input_date.value = dt.toISOString().slice(0, 10);
 }
 
 // Window initialization function
 window.onload = function()
 {
+    datetime = get_datetime_from_url();
     addt_btn_cancel.addEventListener("click", addt_click_cancel);
     addt_btn_save.addEventListener("click", addt_click_save);
-    addt_ui_init();
+    addt_ui_init(datetime);
 }
 

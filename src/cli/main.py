@@ -716,20 +716,20 @@ def main():
     # install the SIGINT handler
     signal.signal(signal.SIGINT, sigint_handler)
 
-    # parse the arguments, then parse the config file
-    args = parse_args()
-    global config
-    try:
-        config = Config(args["config"][0])
-    except Exception as e:
-        fatality(msg="failed to initialize config", exception=e)
-
     # if '--date' was given, we'll attempt to parse it and save a datetime
     # to represent what the user requested
     budget_datetime = datetime.now()
     if "date" in args and args["date"]:
         budget_datetime = parse_date(args["date"][0])
 
+    # parse the arguments, then parse the config file
+    args = parse_args()
+    global config
+    try:
+        config = Config(args["config"][0], dt=budget_datetime)
+    except Exception as e:
+        fatality(msg="failed to initialize config", exception=e)
+ 
     # now, initialize a Budget object
     global budget
     try:

@@ -35,9 +35,14 @@ async function send_request(endpoint, method, jdata)
 }
 
 // Used to retrieve all budget data from the server.
-async function retrieve_data()
+async function retrieve_data(dt)
 {
-    data = await send_request("/get/all", "GET", null);
+    // choose the current date by default
+    if (!dt)
+    { dt = new Date(); }
+
+    data = await send_request("/get/all", "POST",
+                              {"datetime": dt.getTime() / 1000.0});
     if (!data.success)
     {
         let message = "failed to retrieve content (" + data.message + ")."

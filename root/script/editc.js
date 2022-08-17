@@ -16,6 +16,7 @@ const editc_target_input_value = document.getElementById("ctarget_val");
 // Globals
 let bclass = null;
 let class_id = null;
+let datetime = null;
 
 // Takes in an array of strings and creates a comma-separated string containing
 // all of them.
@@ -34,14 +35,18 @@ function make_keyword_string(words)
 // Invoked when the 'cancel' button is clicked.
 function editc_click_cancel()
 {
-    window.location.replace("home.html");
+    const url = "home.html?" + get_datetime_url_string(datetime);
+    window.location.replace(url);
 }
 
 // Invoked when the 'delete' button is clicked.
 function editc_click_delete()
 {
     // send a POST request to delete the class
-    let jdata = {"class_id": bclass.id};
+    let jdata = {
+        "class_id": bclass.id,
+        "datetime": datetime.getTime() / 1000.0
+    };
     diagnostics_clear();
     send_request("/delete/class", "POST", jdata).then(
         function(response)
@@ -81,7 +86,7 @@ function editc_click_save()
  
     // create the JSON object to send to the server, containing only the fields
     // that were changed from the original
-    let jdata = {};
+    let jdata = {"datetime": datetime.getTime() / 1000.0};
     if (name !== bclass.name)
     { jdata.name = name; }
     if (desc !== bclass.description)
@@ -192,11 +197,14 @@ function editc_input_change()
 
 // ============================= Initialization ============================= //
 // Asynchronously retrieves the back-end data and updates the display.
-async function editc_ui_init(bcid)
+async function editc_ui_init(bcid, dt)
 {
     diagnostics_add_message("Contacting server...");
     // first, retrieve the class' data
-    const jdata = {"class_id": bcid};
+    const jdata = {
+        "class_id": bcid,
+        "datetime": dt.getTime() / 1000.0
+    };
     let data = await send_request("/get/class", "POST", jdata);
     if (!data)
     {
@@ -278,6 +286,9 @@ window.onload = function()
     }
     const bcid = params.get("class_id");
 
+    // get datetime from url
+    datetime = get_datetime_from_url();
+
     editc_btn_cancel.addEventListener("click", editc_click_cancel);
     editc_btn_delete.addEventListener("click", editc_click_delete);
     editc_btn_save.addEventListener("click", editc_click_save);
@@ -287,6 +298,6 @@ window.onload = function()
     editc_type_dropdown.addEventListener("change", editc_input_change);
     editc_target_type_dropdown.addEventListener("change", editc_input_change);
     editc_target_input_value.addEventListener("input", editc_input_change);
-    editc_ui_init(bcid);
+    editc_ui_init(bcid, datetime);
 }
 

@@ -20,7 +20,7 @@ from lib.savings import SavingsCategory
 # Main configuration class.
 class Config:
     # Takes in the file path.
-    def __init__(self, fpath):
+    def __init__(self, fpath, dt=datetime.now()):
         self.fpath = fpath
         # set up basic config fields to hold default values
         self.name = None            # configuration name
@@ -68,9 +68,9 @@ class Config:
             day = int(pieces[1].strip())
             assert day > 0 and day < 32, "each day must be a valid [1, 31] day of the month"
 
-            # get the current date - we'll use this to set up our reset dates
+            # get the given date - we'll use this to set up our reset dates
             # accordingly based on the current month/day
-            now = datetime.now()
+            now = dt
             nmonth = now.month
             nday = now.day
             

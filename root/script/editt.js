@@ -15,11 +15,13 @@ const editt_class_dropdown = document.getElementById("tclass");
 
 let transaction = null;
 let bclass_id = null;
+let datetime = null;
 
 // Invoked when the 'cancel' button is clicked.
 function editt_click_cancel()
 {
-    window.location.replace("home.html");
+    const url = "home.html?" + get_datetime_url_string(datetime);
+    window.location.replace(url);
 }
 
 // Invoked when the 'save' button is clicked.
@@ -75,7 +77,10 @@ function editt_click_update()
                       d1.getDate() == d2.getDate();
 
     // put together the JSON object, containing only the revisions
-    let jdata = {"transaction_id": transaction.id}
+    let jdata = {
+        "transaction_id": transaction.id,
+        "datetime": datetime.getTime() / 1000.0
+    }
     if (price !== transaction.price)
     { jdata.price = price; }
     if (vendor !== transaction.vendor)
@@ -110,7 +115,10 @@ function editt_click_update()
 function editt_click_delete()
 {
     // get the transaction ID and send a request to delete the transaction
-    let jdata = {"transaction_id": transaction.id};
+    let jdata = {
+        "transaction_id": transaction.id,
+        "datetime": datetime.getTime() / 1000.0
+    };
     diagnostics_clear();
     send_request("/delete/transaction", "POST", jdata).then(
         function(response)
@@ -172,11 +180,11 @@ function editt_input_change()
 
 // ============================= Initialization ============================= //
 // Asynchronously retrieves the back-end data and updates the display.
-async function editt_ui_init(tid)
+async function editt_ui_init(tid, dt)
 {
     diagnostics_add_message("Contacting server...");
     // first, retrieve the individual transaction
-    const jdata = {"transaction_id": tid};
+    const jdata = {"transaction_id": tid, "datetime": dt.getTime() / 1000.0};
     let data = await send_request("/get/transaction", "POST", jdata);
     if (!data)
     {
@@ -195,7 +203,7 @@ async function editt_ui_init(tid)
     transaction = data.payload;
 
     // next, retrieve the full set of budget classes
-    data = await retrieve_data();
+    data = await retrieve_data(dt);
     if (!data)
     {
         // show an error message
@@ -271,6 +279,9 @@ window.onload = function()
     }
     const tid = params.get("transaction_id");
 
+    // get the datetime from the URL
+    datetime = get_datetime_from_url();
+
     // set up button clicks and other events, then initialize the UI
     editt_btn_cancel.addEventListener("click", editt_click_cancel);
     editt_btn_update.addEventListener("click", editt_click_update);
@@ -281,6 +292,6 @@ window.onload = function()
     editt_input_date.addEventListener("input", editt_input_change);
     editt_input_recur.addEventListener("input", editt_input_change);
     editt_class_dropdown.addEventListener("change", editt_input_change);
-    editt_ui_init(tid);
+    editt_ui_init(tid, datetime);
 }
 

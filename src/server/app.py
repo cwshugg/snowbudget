@@ -41,7 +41,7 @@ config = None   # main server config
 # Used to retrieve a fresh Budget object from the configuration path stored in
 # the server's config module.
 def get_budget(dt=datetime.now()):
-    conf = Config(config.sb_config_fpath)
+    conf = Config(config.sb_config_fpath, dt=dt)
     return Budget(conf, dt=dt)
 
 # Takes a dictionary of data and adds an optional message to it, then packs it

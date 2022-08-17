@@ -10,10 +10,12 @@ const btn_add_transaction = document.getElementById("btn_add_transaction");
 const btn_add_class = document.getElementById("btn_add_class");
 const btn_get_spreadsheet = document.getElementById("btn_get_spreadsheet");
 const savings_container = document.getElementById("savings");
+const datetime_container = document.getElementById("datetime");
 
 // Other globals
 let budget_total_income = 0.0;
 let budget_rdates = null;
+let budget_datetime = null;
 
 // ============================== Interaction =============================== //
 // Invoked when a transaction row is clicked in a budget class table.
@@ -32,19 +34,22 @@ function click_transaction_row(ev)
     // put the ID as a URL parameter and navigate to the edit page
     let transaction_id = tr.id;
     let edit_url = "editt.html?transaction_id=" + transaction_id;
+    edit_url += "&" + get_datetime_url_string(budget_datetime);
     window.location.replace(edit_url);
 }
 
 // Invoked when the 'add transaction' class is clicked.
 function click_add_transaction(ev)
 {
-    window.location.replace("addt.html");
+    const url = "addt.html?" + get_datetime_url_string(budget_datetime);
+    window.location.replace(url);
 }
 
 // Invoked when the 'add class' button is clicked
 function click_add_class(ev)
 {
-    window.location.replace("addc.html");
+    const url = "addc.html?" + get_datetime_url_string(budget_datetime);
+    window.location.replace(url);
 }
 
 // Invoked when the 'get spreadsheet' button is clicked.
@@ -153,6 +158,7 @@ function make_bclass_bottom_menu(bclass)
     btn_edit.addEventListener("click", function() {
         // navigate to the edit page with the correct ID
         let edit_url = "editc.html?class_id=" + bclass.id;
+        edit_url += "&" + get_datetime_url_string(budget_datetime);
         window.location.replace(edit_url);
     });
     
@@ -453,7 +459,7 @@ function make_savings_table(savings_categories)
 
 // =============================== UI Updates =============================== //
 // Used to refresh the summary written at the top of the page.
-async function summary_refresh(bclasses, reset_dates)
+async function summary_refresh(bclasses)
 {
     summary_container.innerHTML = "";
     // we'll compute some statistics
@@ -509,13 +515,6 @@ async function summary_refresh(bclasses, reset_dates)
     if (total != 0.0)
     { elem.innerHTML += float_to_dollar_string(total); }
     elem.innerHTML += "<br>";
-
-    // grab the nearest reset date and create an element to display it
-    let next_date_elem = document.createElement("b");
-    next_date_elem.className = "color-acc1";
-    next_date_elem.innerHTML = "Next reset: ";
-    elem.appendChild(next_date_elem);
-    elem.innerHTML += timestamp_to_date_string(reset_dates[0]);
 
     // append to the main div to add to the document
     summary_container.appendChild(elem);
@@ -670,13 +669,33 @@ async function budget_classes_refresh(bclasses)
     { budget_class_refresh(bclasses[i]); }
 }
 
+// Used to initialize the datetime display/selection area of the home page.
+function budget_datetime_init(dt, reset_dates)
+{
+    // create a title to display the current datetime
+    const datetime_p = document.createElement("p");
+    const datetime_b = document.createElement("b");
+    datetime_b.innerHTML = "Budget date: ";
+    datetime_b.className = "color-acc2";
+    datetime_p.appendChild(datetime_b);
+    datetime_p.innerHTML += timestamp_to_date_string(dt.getTime() / 1000.0) + "<br>";
+    datetime_container.appendChild(datetime_p);
+
+    // create a title to display the next relevant reset date
+    const next_date_b = document.createElement("b");
+    next_date_b.className = "color-acc1";
+    next_date_b.innerHTML = "Next reset: ";
+    datetime_p.appendChild(next_date_b);
+    datetime_p.innerHTML += timestamp_to_date_string(reset_dates[0]);
+}
+
 
 // ============================= Initialization ============================= //
 // Main initializer for the entire page.
-async function ui_init()
+async function ui_init(dt)
 {
     diagnostics_add_message("Contacting server...");
-    let data = await retrieve_data();
+    let data = await retrieve_data(dt);
     if (!data)
     {
         // show an error message
@@ -685,7 +704,7 @@ async function ui_init()
         return;
     }
     // also, look up the reset dates
-    let rdates = await send_request("/get/resets", "GET", null);
+    let rdates = await send_request("/get/resets", "POST", {"datetime": dt.getTime() / 1000.0});
     if (!rdates)
     {
         diagnostics_clear();
@@ -695,7 +714,7 @@ async function ui_init()
     budget_rdates = rdates.payload;
     
     // also, look up the savings categories
-    let scs = await send_request("/get/savings", "GET", null);
+    let scs = await send_request("/get/savings", "POST", {"datetime": dt.getTime() / 1000.0});
     if (!scs)
     {
         diagnostics_clear();
@@ -725,8 +744,9 @@ async function ui_init()
     }
 
     // pass the budget classes to refresh functions
-    summary_refresh(bclasses, reset_dates);
+    summary_refresh(bclasses);
     menu_refresh(bclasses);
+    budget_datetime_init(dt, reset_dates);
     savings_refresh(bclasses, savings_categories);
     budget_classes_refresh(bclasses);
 }
@@ -734,6 +754,9 @@ async function ui_init()
 // Function that's invoked upon window-load.
 window.onload = function()
 {
-    ui_init();
+    // retrieve the datetime from the URL, if it's given. If it's not given,
+    // we'll just use the current datetime
+    budget_datetime = get_datetime_from_url();
+    ui_init(budget_datetime);
 }
 
