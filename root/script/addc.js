@@ -16,7 +16,8 @@ let datetime = null;
 // Invoked when the 'cancel' button is clicked.
 function addc_click_cancel()
 {
-    const url = "home.html?" + get_datetime_url_string(datetime);
+    const params = [{"name": "datetime", "value": "" + datetime.getTime() / 1000.0}]
+    const url = "home.html" + make_url_param_string(params);
     window.location.replace(url);
 }
 

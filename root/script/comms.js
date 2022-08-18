@@ -53,13 +53,19 @@ async function retrieve_data(dt)
 
 // Special-use function for downloading a spreadsheet of the budget through the
 // /get/spreadsheet endpoint.
-function retrieve_spreadsheet()
+function retrieve_spreadsheet(dt)
 {
-    // make a temporary anchor and simulate a click
-    let a = document.createElement("a");
-    a.href = url + "/get/spreadsheet";
-    a.target = "_blank";
-    a.download = "budget.xlsx";
-    a.click();
+    fetch("/get/spreadsheet", {
+        method: "POST",
+        body: JSON.stringify({"datetime": dt.getTime() / 1000.0}),
+        headers: {"Content-Type": "application/json"}
+    }).then(function(resp) {
+        return resp.blob();
+    }).then(function(blob) {
+        const a = document.createElement("a");
+        a.href = window.URL.createObjectURL(blob);
+        a.download="budget.xlsx";
+        a.click();
+    });
 }
 

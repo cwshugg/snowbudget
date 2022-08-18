@@ -32,30 +32,38 @@ function click_transaction_row(ev)
     }
 
     // put the ID as a URL parameter and navigate to the edit page
-    let transaction_id = tr.id;
-    let edit_url = "editt.html?transaction_id=" + transaction_id;
-    edit_url += "&" + get_datetime_url_string(budget_datetime);
-    window.location.replace(edit_url);
+    const params = [
+        {"name": "datetime", "value": + budget_datetime.getTime() / 1000.0},
+        {"name": "transaction_id", "value": tr.id},
+    ]
+    const url = "editt.html" + make_url_param_string(params);
+    window.location.replace(url);
 }
 
 // Invoked when the 'add transaction' class is clicked.
 function click_add_transaction(ev)
 {
-    const url = "addt.html?" + get_datetime_url_string(budget_datetime);
+    const params = [
+        {"name": "datetime", "value": + budget_datetime.getTime() / 1000.0},
+    ]
+    const url = "addt.html" + make_url_param_string(params);
     window.location.replace(url);
 }
 
 // Invoked when the 'add class' button is clicked
 function click_add_class(ev)
 {
-    const url = "addc.html?" + get_datetime_url_string(budget_datetime);
+    const params = [
+        {"name": "datetime", "value": + budget_datetime.getTime() / 1000.0},
+    ]
+    const url = "addc.html" + make_url_param_string(params);
     window.location.replace(url);
 }
 
 // Invoked when the 'get spreadsheet' button is clicked.
 function click_get_spreadsheet(ev)
 {
-    retrieve_spreadsheet();
+    retrieve_spreadsheet(budget_datetime);
 }
 
 
@@ -156,10 +164,12 @@ function make_bclass_bottom_menu(bclass)
 
     // give the button a callback function
     btn_edit.addEventListener("click", function() {
-        // navigate to the edit page with the correct ID
-        let edit_url = "editc.html?class_id=" + bclass.id;
-        edit_url += "&" + get_datetime_url_string(budget_datetime);
-        window.location.replace(edit_url);
+        const params = [
+            {"name": "datetime", "value": + budget_datetime.getTime() / 1000.0},
+            {"name": "class_id", "value": bclass.id},
+        ]
+        const url = "editc.html" + make_url_param_string(params);
+        window.location.replace(url);
     });
     
     return div;

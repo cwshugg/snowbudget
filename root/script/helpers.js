@@ -86,3 +86,33 @@ function get_datetime_url_string(dt)
     return "datetime=" + (dt.getTime() / 1000.0);
 }
 
+// ================================== URL =================================== //
+// Takes in an array of JSON objects containing URL parameter strings, and uses
+// it to build a string to be appended onto a URL to pass the given parameters.
+// The JSON must be formatted like so:
+//      [
+//          {"name": "NAME_GOES_HERE", "value": "VALUE_GOES_HERE"},
+//          {"name": "NAME_GOES_HERE", "value": "VALUE_GOES_HERE"},
+//          ...
+//      ]
+function make_url_param_string(params)
+{
+    let result = "?";
+    let count = 0;
+    for (let i = 0; i < params.length; i++)
+    {
+        const entry = params[i];
+
+        // append a '&' between parameters
+        if (count > 0)
+        { result += "&"; }
+        
+        // append the name and value to the string
+        result += entry.name;
+        result += "=";
+        result += entry.value;
+        count++;
+    }
+    return result;
+}
+
