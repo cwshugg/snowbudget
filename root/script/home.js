@@ -8,6 +8,7 @@ const bclass_income_container = document.getElementById("bclass_income");
 const summary_container = document.getElementById("budget_summary");
 const btn_add_transaction = document.getElementById("btn_add_transaction");
 const btn_add_class = document.getElementById("btn_add_class");
+const btn_change_date = document.getElementById("btn_change_date");
 const btn_get_spreadsheet = document.getElementById("btn_get_spreadsheet");
 const savings_container = document.getElementById("savings");
 const datetime_container = document.getElementById("datetime");
@@ -57,6 +58,24 @@ function click_add_class(ev)
         {"name": "datetime", "value": + budget_datetime.getTime() / 1000.0},
     ]
     const url = "addc.html" + make_url_param_string(params);
+    window.location.replace(url);
+}
+
+// Invoked when the 'change date' button is pressed.
+function click_change_date(ev)
+{
+    // prompt the user to enter a date to change to
+    const resp = window.prompt("Please enter the date you would like to change to. " +
+                               "It must be in the following format: YYYY-MM-DD.",
+                               timestamp_to_date_string(new Date().getTime() / 1000.0));
+    const new_dt = Date.parse(resp);
+    
+    // with the new datetime, build a URL to the home page with the updated
+    // datetime, then navigate to it
+    const params = [
+        {"name": "datetime", "value": new_dt / 1000.0}
+    ]
+    const url = "home.html" + make_url_param_string(params);
     window.location.replace(url);
 }
 
@@ -589,11 +608,13 @@ async function menu_refresh(bclasses)
     // enable the buttons
     btn_add_transaction.disabled = false;
     btn_add_class.disabled = false;
+    btn_change_date.disabled = false;
     btn_get_spreadsheet.disabled = false;
 
     // add click listeners to the buttons
     btn_add_transaction.addEventListener("click", click_add_transaction);
     btn_add_class.addEventListener("click", click_add_class);
+    btn_change_date.addEventListener("click", click_change_date);
     btn_get_spreadsheet.addEventListener("click", click_get_spreadsheet);
 }
 
@@ -685,7 +706,7 @@ function budget_datetime_init(dt, reset_dates)
     // create a title to display the current datetime
     const datetime_p = document.createElement("p");
     const datetime_b = document.createElement("b");
-    datetime_b.innerHTML = "Budget date: ";
+    datetime_b.innerHTML = "Viewing budget date: ";
     datetime_b.className = "color-acc2";
     datetime_p.appendChild(datetime_b);
     datetime_p.innerHTML += timestamp_to_date_string(dt.getTime() / 1000.0) + "<br>";
@@ -694,7 +715,7 @@ function budget_datetime_init(dt, reset_dates)
     // create a title to display the next relevant reset date
     const next_date_b = document.createElement("b");
     next_date_b.className = "color-acc1";
-    next_date_b.innerHTML = "Next reset: ";
+    next_date_b.innerHTML = "Next relevant reset: ";
     datetime_p.appendChild(next_date_b);
     datetime_p.innerHTML += timestamp_to_date_string(reset_dates[0]);
 }
