@@ -76,6 +76,23 @@ class Budget:
                     self.classes.append(bc)
                     current_class_count += 1
 
+        # if no classes were loaded, *and* this is some date in the future,
+        # there's a good chance this is the first time we've actually
+        # created/loaded this time period's class. So, we'll reference the
+        # *current* period's budget and copy any classes over
+        date_is_in_future = self.datetime.timestamp() >= nrd.timestamp()
+        if current_class_count == 0 and date_is_in_future:
+            # get the path to the current reset date's files, then walk
+            # through the directory to load each class file
+            current_sroot = self.save_root_path(dt=now)
+            for root, dirs, files in os.walk(current_sroot):
+                for f in files:
+                    if f.lower().endswith(".json") and "config" not in f.lower():
+                        bc = BudgetClass.load(os.path.join(root, f))
+                        bc.reset()
+                        bc.save(os.path.join(sroot, f))
+                        self.classes.append(bc)
+
         # now, if today is a reset day, we'll walk through yesterday's
         # directory and load in any classes that should be carried over
         if today_is_reset:
