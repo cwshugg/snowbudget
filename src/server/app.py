@@ -250,7 +250,7 @@ def endpoint_auth_login():
         cookie_str = "%s=%s; Path=/" % (auth_cookie_name, cookie)
         # if HTTPS is enabled, add the 'Secure' flag to the cookie
         if config.certs_enabled:
-            cookie_str += "; Secure"
+            cookie_str += "; Max-Age=2592000; Secure"
         # build a response and send the cookie back
         return make_response_json(msg="Authentication succeeded. Hello, %s." % username,
                                   rheaders={"Set-Cookie": cookie_str})
