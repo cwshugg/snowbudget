@@ -716,6 +716,9 @@ def main():
     # install the SIGINT handler
     signal.signal(signal.SIGINT, sigint_handler)
 
+    # parse the command-line arguments
+    args = parse_args()
+
     # if '--date' was given, we'll attempt to parse it and save a datetime
     # to represent what the user requested
     budget_datetime = datetime.now()
@@ -723,7 +726,6 @@ def main():
         budget_datetime = parse_date(args["date"][0])
 
     # parse the arguments, then parse the config file
-    args = parse_args()
     global config
     try:
         config = Config(args["config"][0], dt=budget_datetime)
