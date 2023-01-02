@@ -162,37 +162,17 @@ class Budget:
     # Takes in a transaction and a budget class and adds it to the budget class,
     # then saves the budget class out to disk.
     def add_transaction(self, bclass, transaction):
-        # get the save path based on the transaction's timestamp. It's possible
-        # this will *not* be in the current budget period (i.e. after some other
-        # reset date). We'll check for this here and react accordingly
+        # if the datetime of the transaction lands in a separate reset date,
+        # forbid the operation
         sroot = self.save_root_path(dt=transaction.timestamp)
         fpath = os.path.join(sroot, bclass.to_file_name())
         if (sroot != self.save_root_path(self.datetime)): # if transaction path != the current path
-            # in this case, we need to use the version of the budget class saved
-            # in the computed path (i.e., for a different reset date). To do this,
-            # we'll try to load in the file, if it exists
-            if os.path.isfile(fpath):
-                bc = None
-                try:
-                    bc = BudgetClass.load(fpath)
-                    bc.add(transaction)
-                    bc.save(fpath)
-                except Exception as e:
-                    m = "Failed to update budget class from different reset date: %s" % e
-                    return BudgetResult(success=False, msg=m)
-            else:
-                # if one doesn't exist yet for this different reset date, we'll
-                # create a copy of the current budget class, with this transaction
-                # as the only transaction in its history
-                bc = bclass.copy()
-                bc.history = []
-                bc.add(transaction)
-                bc.save(fpath)
-        else:
-            # if we're not saving to a different reset date within the budget,
-            # things are much easier - simply add and save the current class
-            bclass.add(transaction)
-            bclass.save(fpath)
+            m = "Cannot add a transaction from a different reset date."
+            return BudgetResult(success=False, msg=m)
+
+        # add the transaction and save the budget class
+        bclass.add(transaction)
+        bclass.save(fpath)
 
         # attempt to back up the class we just saved
         try:
